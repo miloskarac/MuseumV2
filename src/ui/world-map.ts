@@ -1,7 +1,7 @@
 import type { HelperPlaySave } from '../game/helpers';
 import type { TicketSave } from '../game/visitors';
 import { MAP_SITES, mapSite, mapText as t } from '../content/world-map';
-import { siteOwned, sitePurchaseStatus, travelBusy } from '../game/world-map';
+import { siteOwned, sitePrice, sitePurchaseStatus, travelBusy } from '../game/world-map';
 import type { TravelSave } from '../game/world-map';
 
 function picture(site: typeof MAP_SITES[number]) {
@@ -37,17 +37,17 @@ export function createMapUi(root: HTMLElement, actions: { open(): void; buy(id: 
       dialog.querySelector('#activity-title')!.textContent = t.title;
       dialog.querySelector('#activity-hint')!.textContent = busy ? t.busy : t.hint;
       dialog.querySelector('#activity-close')!.textContent = t.close;
-      const key = `${save.economy.coins}:${save.world.owned.length}:${save.closedSites.join()}:${save.placed.join()}:${blocked}:${busy}`;
+      const key = `${save.economy.coins}:${save.world.owned.length}:${save.museum.owned.map(o => o.id).join()}:${save.closedSites.join()}:${save.placed.join()}:${blocked}:${busy}`;
       if (key === lastKey) return; lastKey = key;
       view.querySelector<HTMLButtonElement>('[data-travel="hub"]')!.disabled = blocked || busy;
       for (const site of MAP_SITES) {
         const card = view.querySelector<HTMLElement>(`[data-map-site="${site.id}"]`)!;
         const owned = siteOwned(save, site.id), status = sitePurchaseStatus(save, site.id);
         card.querySelector('.map-status')!.textContent = owned ? save.closedSites.includes(site.id) ? t.exhausted : t.owned
-          : status === 'insufficient' ? `${t.insufficient}: ${site.cost - save.economy.coins}` : t[status];
+          : status === 'insufficient' ? `${t.insufficient}: ${sitePrice(save, site.id) - save.economy.coins}` : t[status];
         const buy = card.querySelector<HTMLButtonElement>('[data-site-buy]')!;
         buy.hidden = owned || !site.playable; buy.disabled = blocked || status !== 'ready';
-        buy.textContent = `${t.buy} · ${site.cost}`;
+        buy.textContent = `${t.buy} · ${sitePrice(save, site.id)}`;
         const travel = card.querySelector<HTMLButtonElement>('[data-travel]')!;
         travel.hidden = !owned; travel.disabled = blocked || busy;
       }

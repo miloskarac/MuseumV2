@@ -1,4 +1,4 @@
-import { EXHIBITS, SPECIMEN_ID, SLAB_PART, exhibitDefinition, exhibitText as e } from '../content/exhibit';
+import { ROOM1_EXHIBITS, SPECIMEN_ID, SLAB_PART, exhibitDefinition, exhibitText as e } from '../content/exhibit';
 import type { ExhibitId } from '../content/exhibit';
 import { inventory, exhibitComplete, tutorialDismissed } from '../game/assembly';
 import { pendingDiscovery } from '../game/journey';
@@ -12,7 +12,7 @@ import { completionPhase } from '../game/site-completion';
 import type { SaveStatus } from '../persistence/save';
 import { ANIMAL_ILLUSTRATIONS, illustrationText } from '../content/animal-illustrations';
 
-export type Panel = 'cleaning' | 'bag' | 'recovery' | 'reset' | 'assembly' | 'whole' | 'story' | 'purchase' | 'map' | 'helper' | 'storage' | 'upgrades' | null;
+export type Panel = 'cleaning' | 'bag' | 'recovery' | 'milestone' | 'reset' | 'assembly' | 'whole' | 'story' | 'purchase' | 'map' | 'helper' | 'storage' | 'upgrades' | null;
 type Actions = {
   discovery?: (state: JourneyState) => ReturnType<typeof pendingDiscovery>;
   cleaningDiscovery?: (state: JourneyState) => ReturnType<typeof pendingDiscovery>;
@@ -79,7 +79,7 @@ export function createJourneyUi(root: HTMLElement, actions: Actions) {
   whole.innerHTML = `<div class="whole-preview">${groupPicture(SLAB_PART.id)}<p></p></div>`;
   const comparison = document.createElement('div'); comparison.className = 'story-comparison';
   const animal = document.createElement('figure'); animal.id = 'story-animal'; animal.hidden = true;
-  animal.innerHTML = `<img id="story-animal-image" alt=""><figcaption>${illustrationText.title}</figcaption>`;
+  animal.innerHTML = `<img id="story-animal-image" alt=""><figcaption>${illustrationText.title}</figcaption><p class="reconstruction-note" hidden></p>`;
   comparison.append(dialog.querySelector('#assembly-view')!, whole, animal);
   dialog.insertBefore(comparison, story);
   let selectedExhibit: ExhibitId = SPECIMEN_ID;
@@ -186,12 +186,19 @@ export function createJourneyUi(root: HTMLElement, actions: Actions) {
       if (mode === 'story') {
         const illustration = ANIMAL_ILLUSTRATIONS[selectedExhibit];
         const image = animal.querySelector('img')!;
-        image.src = illustration.image; image.alt = illustration.alt;
+        animal.hidden = !illustration;
+        if (illustration) {
+          image.src = illustration.image; image.alt = illustration.alt;
+          animal.querySelector('figcaption')!.textContent = illustration.caption ?? illustrationText.title;
+          const note = animal.querySelector<HTMLElement>('.reconstruction-note')!;
+          note.hidden = !illustration.visibleNote; note.textContent = illustration.visibleNote ?? '';
+        }
         find('#story-era').textContent = storyText.storyEra;
-        whole.querySelector('p')!.textContent = storyText.name;
+        whole.innerHTML = `<div class="whole-preview">${groupPicture(exhibit.parts[0])}<p></p></div>`;
+        whole.querySelector('p')!.textContent = illustration?.fossilCaption ?? storyText.name;
         story.innerHTML = `<div class="story-facts">${storyText.storyFacts.map(fact => `<section><h3>${fact.title}</h3><p>${fact.text}</p></section>`).join('')}</div><p class="story-observe">${storyText.storyObserve}</p>
-          <details class="story-image-credit"><summary>${illustrationText.credit}</summary><p>${illustration.note}</p>
-          <p>${illustrationText.author}: ${illustration.author} · <a href="${illustration.source}" target="_blank" rel="noopener noreferrer">${illustrationText.source}</a> · <a href="${illustration.licenseUrl}" target="_blank" rel="noopener noreferrer">${illustration.license}</a></p></details>`;
+          ${illustration ? `<details class="story-image-credit"><summary>${illustrationText.credit}</summary><p>${illustration.note}</p>
+          <p>${illustrationText.author}: ${illustration.author} · <a href="${illustration.source}" target="_blank" rel="noopener noreferrer">${illustrationText.source}</a>${illustration.licenseUrl ? ` · <a href="${illustration.licenseUrl}" target="_blank" rel="noopener noreferrer">${illustration.license}</a>` : ''}</p></details>` : ''}`;
       }
       dialog.classList.toggle('is-assembly', mode === 'assembly' || mode === 'story');
       dialog.classList.toggle('is-story', mode === 'story');
@@ -206,13 +213,18 @@ export function createJourneyUi(root: HTMLElement, actions: Actions) {
       find('#cleaning-view').hidden = mode !== 'cleaning';
       find('#bag-list').hidden = mode !== 'bag';
       find('#recovery-retry').hidden = mode !== 'recovery';
-      find('#recovery-reset').hidden = mode !== 'recovery';
+      find('#recovery-reset').hidden = mode !== 'recovery' && mode !== 'milestone';
       find('#confirm-reset').hidden = mode !== 'reset';
       find('#activity-close').hidden = mode === 'recovery';
       if (mode) {
         find('#activity-title').textContent = mode === 'whole' ? t.slabUnknown : mode === 'assembly' ? exhibit.mode === 'whole' ? t.placeWhole : e.assemble : mode === 'story' ? storyText.storyTitle : mode === 'cleaning' ? t.cleanTitle : mode === 'bag' ? t.bag : mode === 'recovery' ? t.recoveryTitle : t.resetTitle;
         find('#activity-hint').textContent = mode === 'whole' ? t.slabMissing : mode === 'assembly' ? e.instruction : mode === 'story' ? storyText.storyIntro : mode === 'cleaning' ? t.cleanHint : mode === 'bag' ? '' : mode === 'recovery' ? t.recovery : t.resetHint;
         find('#activity-close').textContent = mode === 'story' ? e.backToMuseum : mode === 'cleaning' ? t.leave : mode === 'bag' || mode === 'assembly' || mode === 'whole' ? t.closeBag : t.cancel;
+        if (mode === 'milestone') {
+          find('#activity-title').textContent = t.milestoneTitle;
+          find('#activity-hint').textContent = t.milestoneHint;
+          find('#activity-close').textContent = t.keepGame;
+        }
         find(mode === 'recovery' ? '#recovery-retry' : '#activity-close').focus();
         if (mode === 'story') dialog.scrollTop = 0;
       }
@@ -233,7 +245,7 @@ export function createJourneyUi(root: HTMLElement, actions: Actions) {
         button.dataset.state = count === exhibit.parts.length ? 'complete' : count ? 'partial' : 'empty';
       }
       const hint = root.querySelector('#room-hint')!;
-      const allComplete = EXHIBITS.every(exhibit => exhibitComplete(state, exhibit.id));
+      const allComplete = ROOM1_EXHIBITS.every(exhibit => exhibitComplete(state, exhibit.id));
       const site = activeSite(state);
       const collectedHere = site.requiredDiscoveryIds.filter(id => state.collected.includes(id)).length;
       const exploreGoal = state.closedSites.includes(SITE.id) ? t.eryopsSite : t.outdoorsHint;
@@ -276,7 +288,7 @@ export function createJourneyUi(root: HTMLElement, actions: Actions) {
         for (const group of bagGroups) {
           const item = document.createElement('li');
           item.dataset.bagGroup = group.id;
-          const owner = EXHIBITS.find(exhibit => (exhibit.parts as readonly string[]).includes(group.id))!;
+          const owner = ROOM1_EXHIBITS.find(exhibit => (exhibit.parts as readonly string[]).includes(group.id))!;
           const number = owner.mode === 'assembled' ? (owner.parts as readonly string[]).indexOf(group.id) + 1 : 0;
           item.innerHTML = `${number ? `<b class="part-number" aria-hidden="true">${number}</b>` : ''}${groupPicture(group.id)}<span>${group.label}</span>`;
           find('#bag-list').append(item);

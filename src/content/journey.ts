@@ -1,4 +1,4 @@
-import { GROUPS, SPECIMEN_ID, ALL_PARTS, FIRST_PARTS, ERYOPS_GROUPS, SLAB_PART } from './exhibit.ts';
+import { GROUPS, SPECIMEN_ID, ALL_PARTS, FIRST_PARTS, ERYOPS_GROUPS, SLAB_PART, WALCHIA_PART } from './exhibit.ts';
 // Stable content IDs and cleaning-grid indices are part of save version 1.
 // Legacy bone study ID/template retained for V2 save compatibility.
 export const DISCOVERY = {
@@ -28,6 +28,8 @@ export const DISCOVERY = {
 export const DISCOVERIES = GROUPS.map(group => ({ ...DISCOVERY, id: group.discoveryId, name: group.label, groupId: group.id }));
 export const FIRST_DISCOVERIES = FIRST_PARTS.map(group => ({ ...DISCOVERY, id: group.discoveryId, name: group.label, groupId: group.id }));
 export const ALL_DISCOVERIES = ALL_PARTS.map(group => ({ ...DISCOVERY, id: group.discoveryId, name: group.label, groupId: group.id }));
+export const ROOM1_DISCOVERIES = [...ALL_DISCOVERIES, { ...DISCOVERY, id: WALCHIA_PART.discoveryId, name: WALCHIA_PART.label, groupId: WALCHIA_PART.id }];
+export const discoveriesFor = (state: { version: number }) => state.version === 26 ? ROOM1_DISCOVERIES : ALL_DISCOVERIES;
 
 export type DigSite = {
   id: string; specimenId: string; requiredDiscoveryIds: readonly string[]; requires: string | null;
@@ -131,7 +133,13 @@ export const ERYOPS_SITE: DigSite = {
   burial: { 'eryops-spine-find': { topLayer: 0, bottomLayer: 1, axis: 'z' } },
 };
 export const SITES = [SITE, ERYOPS_SITE] as const;
-export const activeSite = (state: { activeSiteId: string }) => SITES.find(site => site.id === state.activeSiteId)!;
+export const ROOM1_ERYOPS_SITE: DigSite = { ...ERYOPS_SITE,
+  requiredDiscoveryIds: [...ERYOPS_SITE.requiredDiscoveryIds, WALCHIA_PART.discoveryId],
+  cells: ERYOPS_SITE.cells.map(cell => ({ ...cell, discoveryId: cell.row === 0 && (cell.column === 3 || cell.column === 4)
+    ? WALCHIA_PART.discoveryId : cell.discoveryId })) };
+export const ROOM1_SITES = [SITE, ROOM1_ERYOPS_SITE] as const;
+export const sitesFor = (state: { version?: number }) => state.version === 26 ? ROOM1_SITES : SITES;
+export const activeSite = (state: { activeSiteId: string; version?: number }) => sitesFor(state).find(site => site.id === state.activeSiteId)!;
 export const sitePlot = (site: DigSite) => SITE_PLOTS.find(plot => plot.id === site.id)!;
 export const siteFront = (site: DigSite) => ({ x: sitePlot(site).entrance.x, z: sitePlot(site).entrance.z - 1.15 });
 
@@ -161,7 +169,7 @@ export const journeyText = {
   leavingSite: 'Враћамо се испред налазишта…', closedSite: 'Налазиште је завршено и затворено.',
   outdoorsHint: 'Уђи у прво налазиште. Ту су кости и мали фосил на плочи.',
   nextSite: 'Потражи преостале налазе у првом налазишту.',
-  eryopsSite: 'Друго налазиште је отворено. Тамо те чекају делови ериопса!',
+  eryopsSite: 'У другом налазишту потражи ериопса и гранчицу валхије!',
   slabMissing: 'Пронађи и очисти фосил на плочи у првом налазишту.',
   slabReady: 'Приђи кругу поред малог постоља. Изабери плочу, па њено место.',
   placeWhole: 'Постави фосил',
@@ -184,6 +192,9 @@ export const journeyText = {
   retry: 'Покушај поново', reset: 'Нови почетак',
   recoveryTitle: 'Не можемо да отворимо сачувану игру',
   recovery: 'Сачувана игра је остала нетакнута. Покушај поново или, уз помоћ одрасле особе, изабери нови почетак.',
+  milestoneTitle: 'Нови редослед у музеју',
+  milestoneHint: 'Сада прво слажемо диметродона, затим трилобита, па ериопса. Твој напредак је сачуван. За прво постоље тренутно нема довољно новчића. У старој пробној игри можда нећеш моћи даље. Можеш да задржиш игру или, уз помоћ одрасле особе, изабереш нови почетак.',
+  keepGame: 'Задржи игру',
   storageUnavailable: 'Чување тренутно није доступно. Покушај поново.',
   resetTitle: 'Обрисати напредак?',
   resetHint: 'Ово брише откопавање, торбу и експонате у овој игри. Нека ти помогне одрасла особа.',

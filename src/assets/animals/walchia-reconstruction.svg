@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 520" role="img" aria-labelledby="title desc">
+  <title id="title">Валхија — илустративна реконструкција</title>
+  <desc id="desc">Давни четинар са усправним стаблом, спратовима бочних грана и ситним уским листовима. Боје и облик крошње су претпоставка.</desc>
+  <!-- Original project artwork, 2026-11-16. Morphology references in README.md. -->
+  <rect width="600" height="520" fill="#eaf3e4"/>
+  <path d="M0 435 100 415 240 429 390 409 600 438V520H0Z" fill="#d5e4bf"/>
+  <ellipse cx="303" cy="470" rx="178" ry="22" fill="#b2c79b"/>
+  <defs>
+    <!-- Narrow leaves along a leafy side shoot; not broad fern leaflets. -->
+    <g id="shoot">
+      <path d="M0 0 61 -35" fill="none" stroke="#478060" stroke-width="4"/>
+      <g fill="#478060">
+        <path d="M10 -6 8 -24 17 -10ZM22 -13 22 -34 30 -18ZM35 -20 37 -41 43 -25ZM48 -28 53 -47 56 -31ZM58 -34 70 -46 64 -33Z"/>
+        <path d="M10 -6 28 -3 18 -10ZM23 -13 43 -9 30 -17ZM36 -21 56 -17 44 -25ZM49 -28 68 -25 57 -32Z"/>
+      </g>
+      <path d="M22 -13 22 -34 26 -20ZM36 -21 56 -17 44 -25Z" fill="#76a66d"/>
+    </g>
+    <g id="branch">
+      <path d="M0 0 48 -6 105 -19 164 -37" fill="none" stroke="#796b47" stroke-width="6" stroke-linecap="round"/>
+      <use href="#shoot" transform="translate(18 -3) rotate(-18) scale(.8)"/>
+      <use href="#shoot" transform="translate(48 -6) rotate(-14) scale(.85)"/>
+      <use href="#shoot" transform="translate(80 -13) rotate(-10) scale(.8)"/>
+      <use href="#shoot" transform="translate(112 -22) rotate(-7) scale(.7)"/>
+      <use href="#shoot" transform="translate(140 -30) scale(.55)"/>
+      <use href="#shoot" transform="translate(28 -4) rotate(48) scale(.8)"/>
+      <use href="#shoot" transform="translate(59 -9) rotate(47) scale(.8)"/>
+      <use href="#shoot" transform="translate(92 -16) rotate(43) scale(.75)"/>
+      <use href="#shoot" transform="translate(122 -25) rotate(40) scale(.6)"/>
+    </g>
+  </defs>
+  <!-- Upright trunk; separated tiers of near-horizontal lateral branches. -->
+  <path d="M283 474 294 183 299 52 305 180 317 474 301 465Z" fill="#96784d"/>
+  <path d="M301 76 305 180 317 474 304 468Z" fill="#715f43"/>
+  <g opacity=".7">
+    <use href="#branch" transform="translate(302 340) rotate(-22) scale(.8 .65)"/>
+    <use href="#branch" transform="translate(301 266) rotate(-14) scale(-.7 .6)"/>
+  </g>
+  <use href="#branch" transform="translate(300 367) scale(-1.12 .95)"/>
+  <use href="#branch" transform="translate(303 366) scale(1.16 .95)"/>
+  <use href="#branch" transform="translate(300 290) scale(-1 .88)"/>
+  <use href="#branch" transform="translate(303 288) scale(1.02 .88)"/>
+  <use href="#branch" transform="translate(300 220) scale(-.84 .8)"/>
+  <use href="#branch" transform="translate(303 218) scale(.85 .8)"/>
+  <use href="#branch" transform="translate(300 159) scale(-.62 .64)"/>
+  <use href="#branch" transform="translate(302 158) scale(.65 .64)"/>
+  <use href="#branch" transform="translate(300 109) scale(-.39 .5)"/>
+  <use href="#branch" transform="translate(301 108) scale(.4 .5)"/>
+  <use href="#shoot" transform="translate(300 86) rotate(-52) scale(.6)"/>
+  <use href="#shoot" transform="translate(300 76) rotate(-95) scale(.4)"/>
+</svg>

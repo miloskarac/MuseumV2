@@ -30,9 +30,10 @@ import { museumLayout } from '../game/museum-layout';
 import type { MuseumLayout } from '../game/museum-layout';
 import type { Point, RoomId } from '../game/navigation';
 import { cameraOffset } from '../content/view';
+import { FUTURE_ROOM_DOOR } from '../content/early-permian-layout';
 import { buildCashier, buildVisitors } from './visitors';
 import type { VisitorPose } from '../game/visitor-simulation';
-import { CASHIER, VISITOR_ENTRANCE } from '../content/visitors';
+import { CASHIER, CASH_PILE, VISITOR_ENTRANCE } from '../content/visitors';
 import { atCashier } from '../game/visitors';
 import { buildHelper } from './helper';
 import type { HelperPose } from '../game/helper-simulation';
@@ -54,6 +55,7 @@ export function createWorld(canvas: HTMLCanvasElement, separateCamps = false, he
   let animateDig: ReturnType<typeof buildDigAnimation> | undefined;
   let journey: JourneyState | undefined;
   let updateAssembled: ((state: JourneyState) => void)[] = [];
+  let updateWalchia: ReturnType<typeof buildSlabExhibit> | undefined;
   let updateSlab: ReturnType<typeof buildSlabExhibit> | undefined;
   let tutorialArrow: Mesh | undefined;
   let layout = museumLayout();
@@ -67,7 +69,7 @@ export function createWorld(canvas: HTMLCanvasElement, separateCamps = false, he
     currentRoom = room;
     updateDiscovery = undefined;
     updateAssembled = [];
-    updateSlab = undefined;
+    updateSlab = undefined; updateWalchia = undefined;
     updateOutdoors = undefined;
     updateVisitors = undefined;
     updateTicketIncome = undefined;
@@ -158,6 +160,7 @@ export function createWorld(canvas: HTMLCanvasElement, separateCamps = false, he
       shape.beveledBox('side-wall-cap', [0.3, 0.14, 12.3], [left - 0.05, 2.24, 0], rim);
       for (const [index, x] of [-14.9, -10.8, -6.7, -2.6, 1.5].entries()) {
         if (x - 1.35 < left) continue;
+        if (Math.abs(x - FUTURE_ROOM_DOOR.x) < 1.35 + FUTURE_ROOM_DOOR.width / 2) continue;
         shape.beveledBox('wall-panel', [2.7, 1.12, 0.1], [x, 1.35, 5.88], rim);
         shape.box('panel-inset', [2.48, 0.9, 0.04], [x, 1.35, 5.81], panel);
         // Decorative shell/leaf motifs, not labeled specimens or extra exhibits.
@@ -183,6 +186,25 @@ export function createWorld(canvas: HTMLCanvasElement, separateCamps = false, he
 
       updateAssembled = layout.assembled.map(stand => buildAssembledExhibit(scene, shape, material, stand));
       if (layout.slab) updateSlab = buildSlabExhibit(scene, shape, material);
+      if (layout.walchia) updateWalchia = buildSlabExhibit(scene, shape, material, 'walchia');
+      for (const stand of layout.vacant) {
+        // Flush floor inlays show the future plinth footprint without blocking
+        // walking or pretending the stand has already been purchased.
+        for (const side of [-1, 1]) {
+          shape.box('stand-location-edge', [stand.width, 0.015, 0.06], [stand.x, 0.045, stand.z + side * stand.depth / 2], panel);
+          shape.box('stand-location-edge', [0.06, 0.015, stand.depth], [stand.x + side * stand.width / 2, 0.045, stand.z], panel);
+        }
+      }
+      if (!layout.walchia) {
+      const reserved = layout.reserved;
+      shape.beveledBox('walchia-reserved-base', [reserved.width, 0.18, reserved.depth], [reserved.x, 0.13, reserved.z], tealDark);
+      shape.beveledBox('walchia-reserved-top', [reserved.width - 0.12, 0.12, reserved.depth - 0.12], [reserved.x, 0.28, reserved.z], panel);
+      }
+      // A closed architectural recess reserves the connection, not another room.
+      const door = FUTURE_ROOM_DOOR;
+      shape.beveledBox('future-room-frame', [door.width, 2.05, 0.12], [door.x, 1.1, door.z], rim);
+      shape.box('future-room-closed', [door.width - 0.22, 1.86, 0.08], [door.x, 1.06, door.z - 0.09], tealDark);
+      shape.box('future-room-rail', [door.width - 0.12, 0.16, 0.14], [door.x, 0.95, door.z - 0.17], wood);
       const purchaseGold = material('purchase-gold', '#e4b52b', 0.18);
       for (const spot of layout.purchases) {
         // An octagonal token distinguishes buying from round assembly markers.
@@ -325,18 +347,19 @@ export function createWorld(canvas: HTMLCanvasElement, separateCamps = false, he
     },
     render: () => scene.render(),
     updateVisitors: (poses: VisitorPose[], seconds: number) => updateVisitors?.(poses, seconds),
-    updateTicketIncome: (income: number) => updateTicketIncome?.(income),
+    updatePendingCash: (income: number) => updateTicketIncome?.(income),
     updateHelper: (pose: HelperPose | null, state: JourneyState, seconds: number) => updateHelper?.(pose, state, seconds),
     placePlayer,
     animateDig: (swing: DigSwing | null) => animateDig?.(swing, journey),
     animateCleanup: (pop: CleanupPop | null) => { if (journey) updateDiscovery?.(journey, pop, unavailableFinds); },
-    updateJourney: (state: JourneyState, unavailable: readonly string[] = []) => { journey = state; unavailableFinds = unavailable; updateDiscovery?.(state, null, unavailable); updateOutdoors?.(state); updateAssembled.forEach(update => update(state)); updateSlab?.(state); tutorialArrow?.setEnabled(!tutorialDismissed(state)); },
+    updateJourney: (state: JourneyState, unavailable: readonly string[] = []) => { journey = state; unavailableFinds = unavailable; updateDiscovery?.(state, null, unavailable); updateOutdoors?.(state); updateAssembled.forEach(update => update(state)); updateSlab?.(state); updateWalchia?.(state); tutorialArrow?.setEnabled(!tutorialDismissed(state)); },
     changeRoom: (room: RoomId, state?: JourneyState) => {
       if (state) journey = state;
       buildRoom(room);
       placePlayer(ARRIVAL, { x: 0, z: -1 }, false, 0);
     },
     labels: () => ({
+      cash: currentRoom === 'museum' && layout.cashier ? project(new Vector3(CASH_PILE.x, 0.45, CASH_PILE.z)) : null,
       storage: helpersEnabled && journey && currentRoom !== 'museum' ? project(new Vector3(storageAnchor(journey).x, 1.45, storageAnchor(journey).z)) : null,
       cashier: currentRoom === 'museum' && layout.cashier ? project(new Vector3(CASHIER.x - 0.6, 1.65, CASHIER.z - 0.4)) : null,
       entrance: currentRoom === 'museum' && layout.cashier ? project(new Vector3(VISITOR_ENTRANCE.x, 2.65, VISITOR_ENTRANCE.z)) : null,

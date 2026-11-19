@@ -1,8 +1,8 @@
-import { ALL_PARTS, SPECIMEN_ID, exhibitDefinition } from '../content/exhibit.ts';
+import { partsFor, SPECIMEN_ID, exhibitDefinition } from '../content/exhibit.ts';
 import type { ExhibitId } from '../content/exhibit.ts';
 import type { JourneyState } from './journey.ts';
 
-export const inventory = (state: JourneyState) => ALL_PARTS.filter(group =>
+export const inventory = (state: JourneyState) => partsFor(state).filter(group =>
   state.collected.includes(group.discoveryId) && !state.placed.includes(group.id));
 export const exhibitComplete = (state: JourneyState, id: ExhibitId = SPECIMEN_ID) => exhibitDefinition(id).parts.every(part => state.placed.includes(part));
 export const tutorialDismissed = (state: JourneyState) => state.placed.length > 0;

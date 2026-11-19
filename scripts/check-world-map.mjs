@@ -1,3 +1,4 @@
+import { parseCreditSave } from '../src/persistence/credit-save.ts';
 // Temporary Edge profile; never opens Luka's browser or normal saved playthrough.
 // node scripts/check-world-map.mjs <playwright index.mjs> <Vite URL>
 import assert from 'node:assert/strict';
@@ -8,7 +9,6 @@ import { SITE, ERYOPS_SITE, sitePlot } from '../src/content/journey.ts';
 import { freshJourney } from '../src/game/journey.ts';
 import { advanceMuseum, museumJourney, buyPurchase, placeOwnedGroup, createMuseumSave } from '../src/game/purchases.ts';
 import { createTravelSave, travelTo, buySite } from '../src/game/world-map.ts';
-import { parseUpgradeSave } from '../src/persistence/upgrade-save.ts';
 import { screenDirection, PORTAL } from '../src/game/navigation.ts';
 const { chromium } = await import(pathToFileURL(process.argv[2]).href);
 const browser = await chromium.launch({ channel: 'msedge', headless: true });
@@ -17,7 +17,7 @@ const page = await context.newPage(), errors = [];
 page.on('pageerror', e => errors.push(e.message));
 page.on('console', e => { if (e.type() === 'error') errors.push(e.text()); });
 const saved = () => page.evaluate(key => JSON.parse(localStorage.getItem(key)), PURCHASE_QA_KEY);
-const shot = name => page.screenshot({ path: `docs/qa/map-${name}.png` });
+const shot = name => page.screenshot({ path: `docs/qa/${process.argv[4] || "map"}-${name}.png` });
 async function ready() {
   await page.waitForFunction(() => document.querySelector('#coin-count')?.textContent !== '—' && document.querySelector('.session-blocker')?.hidden);
   await page.evaluate(async () => {
@@ -72,7 +72,7 @@ try {
   await page.goto(process.argv[3]); await ready();
   const normal = await page.evaluate(key => localStorage.getItem(key), SAVE_KEY);
   await page.goto(new URL('?purchases=1', process.argv[3]).href); await ready();
-  assert.equal((await saved()).version, 19);
+  assert.equal((await saved()).version, 24);
   for (const [width, height] of [[1440, 1000], [1280, 720], [390, 844]]) {
     await page.setViewportSize({ width, height }); await page.waitForTimeout(200); await shot(`after-${width}`);
     await openMap(); await shot(`cards-${width}`);
@@ -85,9 +85,8 @@ try {
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
   // The in-world sign opens the same map and closing it does not loop.
-  await walkUntil({ x: 5.4, z: -2.5 }, 'museum', async () => Math.hypot((await position()).x - 5.4, (await position()).z + 2.5) < 0.2);
-  await walkUntil({ x: 7, z: -2.5 }, 'museum', async () => (await position()).x > 6.8);
-  await walkUntil({ x: 7, z: 2 }, 'museum', async () => (await position()).z > 1.8);
+  await walkUntil({ x: 3.8, z: -2.5 }, 'museum', async () => Math.hypot((await position()).x - 3.8, (await position()).z + 2.5) < 0.2);
+  await walkUntil({ x: 3.8, z: 2 }, 'museum', async () => (await position()).z > 1.8);
   await walkUntil(PORTAL, 'museum', () => page.locator('#map-view').isVisible());
   await page.locator('#activity-close').click(); await page.waitForTimeout(400);
   assert.equal(await page.locator('dialog').evaluate(el => el.open), false);
@@ -135,7 +134,7 @@ try {
   await page.waitForFunction(key => JSON.parse(localStorage.getItem(key)).closedSites.includes('courtyard-dig'), PURCHASE_QA_KEY, { timeout: 60000 });
   assert.equal((await saved()).world.location.kind, 'site-camp');
   assert.equal(await page.locator('#open-map').isEnabled(), true);
-  assert.ok(parseUpgradeSave(JSON.stringify(await saved()), 99)); await shot('cleanup-finished');
+  assert.ok(parseCreditSave(JSON.stringify(await saved()), 99)); await shot('cleanup-finished');
   // Existing earned access is free; early saves must buy later.
   const legacy = advanceMuseum(createMuseumSave(11), { ...freshJourney(), dig: Object.fromEntries(SITE.cells.map(c => [c.id, 1])), collected: [...SITE.requiredDiscoveryIds], closedSites: [SITE.id] });
   await seed(legacy); assert.equal((await saved()).world.owned[0].source, 'legacy'); assert.equal((await saved()).economy.coins, legacy.economy.coins);

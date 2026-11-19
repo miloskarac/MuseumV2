@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FOSSIL_PROFILES } from '../src/presentation/fossil-profiles.ts';
-import { ALL_PARTS } from '../src/content/exhibit.ts';
+import { ROOM1_PARTS } from '../src/content/exhibit.ts';
 
 test('every fossil profile fits the cleaning tray and contains valid solid-mesh facets', () => {
-  assert.deepEqual(Object.keys(FOSSIL_PROFILES).sort(), ALL_PARTS.map(g => g.id).sort());
+  assert.deepEqual(Object.keys(FOSSIL_PROFILES).sort(), ROOM1_PARTS.map(g => g.id).sort());
   for (const [id, facets] of Object.entries(FOSSIL_PROFILES)) {
     for (const [index, { points }] of facets.entries()) {
       const label = `${id} facet ${index}`;

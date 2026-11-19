@@ -1,5 +1,5 @@
 import { storageText as t } from '../content/storage';
-import { ALL_DISCOVERIES } from '../content/journey';
+import { ROOM1_DISCOVERIES } from '../content/journey';
 import { groupPicture } from './assembly';
 import { storedFinds, atStorage } from '../game/storage';
 import type { StoragePlaySave } from '../game/storage';
@@ -35,7 +35,7 @@ export function createStorageUi(root: HTMLElement, actions: { open(): void; sele
       view.replaceChildren();
       if (!ids.length) { const empty = document.createElement('p'); empty.textContent = t.empty; view.append(empty); }
       for (const id of ids) {
-        const find = ALL_DISCOVERIES.find(f => f.id === id)!, progress = cleaningProgress(museumJourney(save), id);
+        const find = ROOM1_DISCOVERIES.find(f => f.id === id)!, progress = cleaningProgress(museumJourney(save), id);
         const row = document.createElement('article'); row.innerHTML = `${groupPicture(find.groupId)}<strong>${find.name}</strong>`;
         const button = document.createElement('button'); button.dataset.storedFind = id; button.disabled = blocked;
         button.textContent = progress === 1 ? t.ready : progress ? `${t.resume} · ${Math.round(progress * 100)}%` : t.clean;

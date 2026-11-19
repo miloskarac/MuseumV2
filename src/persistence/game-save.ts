@@ -1,7 +1,7 @@
-import { ECONOMY } from '../content/economy.ts';
-import { SITES } from '../content/journey.ts';
+import { ECONOMY, soilUnits, layerCleared, coinOutcome, migrateEconomy } from './contracts/economy-v1.ts';
+import { SITES } from './contracts/journey-v12.ts';
 import { freshJourney } from '../game/journey.ts';
-import { createGameSave, soilUnits, layerCleared, coinOutcome } from '../game/economy.ts';
+import { createGameSave } from '../game/economy.ts';
 import type { GameSave } from '../game/economy.ts';
 import { parseSave, SAVE_KEY } from './save.ts';
 import type { StoragePort } from './save.ts';
@@ -14,16 +14,16 @@ const unique = (value: unknown): value is string[] => Array.isArray(value)
 
 // The schema-1–12 parser stays frozen as the historical journey contract.
 // Schema 13 validates that contract plus a separate, inseparable economy snapshot.
-export function parseGameSave(raw: string, migrationSeed: number): GameSave | null {
+export function parseGameSave(raw: string, migrationSeed: number, parseJourney = parseSave): GameSave | null {
   try {
     const value: unknown = JSON.parse(raw);
     if (!record(value)) return null;
     if (value.version !== 13) {
       const journey = parseSave(raw);
-      return journey ? createGameSave(journey, migrationSeed) : null;
+      return journey ? migrateEconomy(journey, migrationSeed) : null;
     }
     const { economy: e, ...progress } = value;
-    const journey = parseSave(JSON.stringify({ ...progress, version: 12 }));
+    const journey = parseJourney(JSON.stringify({ ...progress, version: 12 }));
     if (!journey || !record(e) || !keys(e, ['version', 'seed', 'coins', 'sites']) || e.version !== 1
       || !Number.isInteger(e.seed) || Number(e.seed) < 0 || Number(e.seed) > 0xffffffff
       || !Number.isSafeInteger(e.coins) || Number(e.coins) < 0 || !record(e.sites)

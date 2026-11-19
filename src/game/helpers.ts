@@ -2,7 +2,7 @@ import { claimHelperFinds, carriedFinds, settleDeliveries } from './storage.ts';
 import { helperWorkRate } from './upgrade-stats.ts';
 import type { StoragePlaySave } from './storage.ts';
 import { HELPERS } from '../content/helpers.ts';
-import { SITES, ERYOPS_SITE, HITS_PER_LAYER } from '../content/journey.ts';
+import { sitesFor, SITES, ERYOPS_SITE, HITS_PER_LAYER } from '../content/journey.ts';
 import { activeDigLayer, allSiteRecovered, diggableCells, isUncovered } from './journey.ts';
 import { advanceMuseum, displayedExhibits, museumJourney } from './purchases.ts';
 import { createTicketSave } from './visitors.ts';
@@ -20,7 +20,7 @@ export const createHelperSave = (seed: number) => migrateHelperSave(createTicket
 
 // 6.5 boundary: no helper may cause a new fossil exposure before custody exists.
 export function helperLayer(save: HelperPlaySave, siteId: string, cellId: string) {
-  const site = SITES.find(s => s.id === siteId), state = museumJourney(save);
+  const site = sitesFor(save).find(s => s.id === siteId), state = museumJourney(save);
   if (!site || !siteOwned(save, siteId) || allSiteRecovered(state, site) || save.closedSites.includes(siteId)) return null;
   const cell = site.cells.find(c => c.id === cellId), layer = activeDigLayer(state, site), start = save.dig[cellId] ?? 0;
   if (!cell || layer >= site.grid.levels || Math.floor(start * site.grid.levels + 1e-9) !== layer) return null;

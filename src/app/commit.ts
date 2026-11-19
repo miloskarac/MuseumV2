@@ -37,7 +37,16 @@ export function createCommitter<T>(storage: StoragePort, status: (value: SaveSta
     },
     flush,
     reset() {
-      if (blocked || !writer.reset()) return false;
+      if (blocked) return false;
+      const wasFailed = failed;
+      if (!writer.reset()) {
+        // A failed deletion leaves both storage and the pending candidate intact.
+        // Restore the pre-reset write state so cancelling a reset remains usable;
+        // a pre-existing failed commit still requires its explicit retry.
+        failed = wasFailed;
+        status(failed ? 'failed' : writer.hasPending() ? 'pending' : 'saved');
+        return false;
+      }
       pendingEffect = null; failed = false; return true;
     },
     block() { blocked = true; pendingEffect = null; writer.cancel(); },

@@ -37,7 +37,13 @@ button:focus-visible { outline: 3px solid #ba8e45; outline-offset: 3px; }
 .masthead .room-badge { margin-left: auto; }
 .bag-button { flex-shrink: 0; }
 .coin-balance { position: relative; display: flex; align-items: center; gap: 7px; flex-shrink: 0; background: #f8e5aa; color: #624918; border: 2px solid #cfab4e; border-radius: 24px; padding: 8px 12px; font-size: 18px; }
-.coin-icon { color: #d99c27; text-shadow: 0 1px #fff3bf; font-size: 24px; line-height: 1; }
+.banknote-stack { position: relative; display: inline-block; width: 40px; height: 32px; flex-shrink: 0; }
+.banknote-stack i { position: absolute; left: 1px; bottom: calc(1px + var(--note) * 2px); width: 33px; height: 17px; border: 1px solid #26774e; border-radius: 2px; background: #83ca84; transform: rotate(-7deg); }
+.banknote-stack i:nth-child(even) { left: 4px; transform: rotate(6deg); }
+.banknote-stack i::after { content: ''; position: absolute; inset: 3px 11px; background: #26774e; border-radius: 50%; }
+.banknote-stack.collecting { animation: cash-pickup .45s ease-out; }
+@keyframes cash-pickup { 50% { transform: translateY(-5px) scale(1.18); } }
+@media (prefers-reduced-motion: reduce) { .banknote-stack.collecting { animation: none; } }
 .coin-label { font-size: 14px; }
 #coin-count { font-variant-numeric: tabular-nums; }
 #coin-gain { position: absolute; right: 8px; top: calc(100% + 3px); z-index: 2; color: #244f39; background: #fff7df; border-radius: 8px; padding: 2px 7px; font-weight: 700; }
@@ -160,7 +166,10 @@ progress { width: 100%; height: 18px; accent-color: #379c94; }
 #assembly-slab-preview svg { width: 100%; height: 90%; }
 #assembly-slab-preview.selected { opacity: .55; }
 #assembly-slab-preview.placed { opacity: 1; }
-.assembly-target[data-target="trilobite-whole"] { left: 50%; top: 50%; }
+.assembly-whole .assembly-target { left: 50%; top: 50%; width: 64px; height: 64px; border-width: 3px; box-shadow: 0 0 0 5px #fff9e980; }
+.assembly-whole #assembly-slab-preview { opacity: .45; }
+.assembly-whole #assembly-slab-preview.selected { opacity: .8; }
+.assembly-whole #assembly-slab-preview.placed { opacity: 1; }
 .assembly-target { position: absolute; transform: translate(-50%, -50%); width: 44px; height: 44px; min-height: 44px; padding: 0; border: 2px dashed #477f85; border-radius: 50%; background: #fff9e9d9; color: #31584e; font-size: 19px; transition: background .2s, opacity .2s; }
 .assembly-target.selected { border-style: solid; border-color: #b78027; background: #ffe3a1; box-shadow: 0 0 0 5px #e8b74b55; }
 .assembly-target.placed { opacity: 0; pointer-events: none; }
@@ -191,6 +200,7 @@ progress { width: 100%; height: 18px; accent-color: #379c94; }
 #story-animal { margin: 0; background: #dce6d8; border-radius: 14px; overflow: hidden; }
 #story-animal-image { display: block; width: 100%; height: clamp(160px, 24vh, 260px); object-fit: contain; background: #fff; }
 #story-animal figcaption { padding: 0 12px 12px; margin-top: 4px; text-align: center; font-size: 18px; font-weight: 600; }
+.reconstruction-note { padding: 0 14px 14px; font-size: 15px; text-align: center; line-height: 1.4; }
 .story-image-credit { margin-top: 14px; font-size: 14px; }
 .story-image-credit summary { cursor: pointer; }
 .story-image-credit p { font-size: 14px; margin-top: 8px; }
@@ -238,6 +248,7 @@ progress { width: 100%; height: 18px; accent-color: #379c94; }
 }
 .cashier-panel { position: absolute; top: 16px; left: 16px; max-width: 250px; padding: 12px 16px; border: 2px solid #80a5a0; border-radius: 14px; background: #fff7e5f2; pointer-events: none; }
 .cashier-panel p { margin: 8px 0; line-height: 1.35; font-size: 15px; }
+.cash-label { pointer-events: none; padding: 6px 10px; background: #d8f2b4; color: #245831; border: 2px solid #45935b; border-radius: 12px; font-weight: 700; transform: translate(-50%, 8px); }
 .cashier-panel strong { font-size: 18px; }
 .cashier-label, .entrance-label { background: #326f79; color: #fff; border: 2px solid #87b8bb; border-radius: 10px; padding: 6px 10px; font-weight: 700; font-size: 16px; }
 .entrance-label { background: #286c67; border-color: #d4ad64; }
@@ -272,3 +283,6 @@ progress { width: 100%; height: 18px; accent-color: #379c94; }
   .upgrade-card svg { flex-basis: 56px; width: 56px; height: 56px; }
   .upgrade-card > button { width: 100%; }
 }
+
+.room-completion { position: absolute; z-index: 8; top: 12px; left: 50%; transform: translateX(-50%); width: min(420px, calc(100% - 24px)); padding: 16px; border: 3px solid #d2a23c; border-radius: 16px; background: #fff7dc; color: #294d47; text-align: center; box-shadow: 0 8px 24px #294d4740; }
+.room-completion p { margin: 10px 0; }

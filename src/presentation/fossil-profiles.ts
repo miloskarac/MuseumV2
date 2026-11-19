@@ -1,7 +1,7 @@
-import type { ALL_PARTS } from '../content/exhibit.ts';
+import type { ROOM1_PARTS } from '../content/exhibit.ts';
 import { ERYOPS_PROFILES } from './eryops-profiles.ts';
 
-export type FossilGroup = typeof ALL_PARTS[number]['id'];
+export type FossilGroup = typeof ROOM1_PARTS[number]['id'];
 export type Point = [number, number];
 export type FossilFacet = { points: Point[]; tone: 'bone' | 'shade' | 'recess' };
 
@@ -21,6 +21,24 @@ function profile(id: FossilGroup): FossilFacet[] {
     polygon([[a[0] + nx * start, a[1] + ny * start], [b[0] + nx * end, b[1] + ny * end],
       [b[0] - nx * end, b[1] - ny * end], [a[0] - nx * start, a[1] - ny * start]], tone);
   };
+  if (id === 'walchia-whole') {
+    // Original stylized plant impression, shared by excavation, cleaning and
+    // the small museum slab. Replace this profile when final artwork is approved.
+    shaft([3, 10], [21, 4], 0.24, 0.10, 'recess');
+    for (let i = 0; i < 5; i++) {
+      const x = 6 + i * 2.8, y = 9 - i * 0.93;
+      for (const side of [-1, 1]) {
+        const end: Point = [x + 2.1, y + side * (3.1 - i * 0.2)];
+        shaft([x, y], end, 0.15, 0.04, 'recess');
+        for (let n = 1; n <= 4; n++) {
+          const t = n / 5, px = x + (end[0] - x) * t, py = y + (end[1] - y) * t;
+          shaft([px, py], [px + 0.9, py + side * 0.28], 0.13, 0.01, 'shade');
+          shaft([px, py], [px - 0.5, py + side * 0.7], 0.13, 0.01, 'shade');
+        }
+      }
+    }
+    return facets;
+  }
   if (id === 'trilobite-whole') {
     // Stylized dorsal shell: cephalon, articulated thorax and fused tail shield.
     // Three longitudinal lobes, rather than three head/body/tail sections.
@@ -117,6 +135,7 @@ export const FOSSIL_PROFILES: Record<FossilGroup, FossilFacet[]> = {
   skull: profile('skull'), 'spine-sail': profile('spine-sail'), ribs: profile('ribs'),
   'front-legs': profile('front-legs'), 'hind-legs': profile('hind-legs'), tail: profile('tail'),
   'trilobite-whole': profile('trilobite-whole'),
+  'walchia-whole': profile('walchia-whole'),
 };
 
 export function drawFossilProfile(context: CanvasRenderingContext2D, id: FossilGroup) {

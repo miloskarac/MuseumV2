@@ -27,7 +27,7 @@ try {
   assert.equal(await page.locator('#exhibit-eryops').isVisible(), false);
   assert.equal(await page.locator('#cashier-panel').isVisible(), true);
   const save = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), SAVE_KEY);
-  assert.equal(save.version, 19); assert.equal(save.economy.coins, 20);
+  assert.equal(save.version, 24); assert.equal(save.economy.coins, 20);
   await page.locator('[data-purchase="stand-trilobite"]').click(); await page.locator('#buy-purchase').click();
   assert.equal(await page.locator('#coin-count').innerText(), '12');
   await page.locator('#open-map').click(); await page.locator('[data-travel="courtyard-dig"]').click();
@@ -38,9 +38,9 @@ try {
   await page.evaluate(([key, old]) => localStorage.setItem(key, JSON.stringify(old)), [SAVE_KEY, old]); await page.reload();
   await page.waitForFunction(() => document.querySelector('#ticket-price')?.textContent === '2');
   const migrated = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), SAVE_KEY);
-  assert.equal(migrated.version, 19); assert.equal(migrated.museum.owned.length, 4);
+  assert.equal(migrated.version, 24); assert.equal(migrated.museum.owned.length, 4);
   assert.equal(migrated.world.owned[0].source, 'legacy'); assert.equal(migrated.economy.coins, old.economy.coins);
-  assert.deepEqual(migrated.visitors.sales, [0, 0, 0]); assert.deepEqual(migrated.placed, old.placed);
+  assert.deepEqual(migrated.visitors.sales, { version: 1, counts: {} }); assert.deepEqual(migrated.placed, old.placed);
   assert.deepEqual(migrated.upgrades.owned, []);
   await page.locator('#open-upgrades').click(); await page.locator('[data-upgrade="boots"]').click();
   assert.equal(await page.locator('#coin-count').innerText(), '4');
@@ -48,5 +48,5 @@ try {
   assert.deepEqual(await page.evaluate(key => JSON.parse(localStorage.getItem(key)).upgrades.owned, SAVE_KEY), [{ id: 'boots', paid: 16 }]);
   assert.equal(await page.evaluate(key => localStorage.getItem(key), PURCHASE_QA_KEY), 'qa-save-must-stay-untouched');
   assert.deepEqual(errors, []);
-  console.log(`PASS: production uses schema-19 paid progression/map/cashier/upgrades, saves purchases/travel, migrates existing entitlements and preserves isolated QA storage; Edge ${browser.version()}.`);
+  console.log(`PASS: production uses schema-24 paid progression/map/cashier/upgrades, saves purchases/travel, migrates existing entitlements and preserves isolated QA storage; Edge ${browser.version()}.`);
 } finally { await browser.close(); }

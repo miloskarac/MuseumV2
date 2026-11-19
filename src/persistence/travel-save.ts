@@ -1,14 +1,15 @@
+import { HISTORICAL_READ_RULES } from './room1-save-rules.ts';
+import type { ProgressionReadRules } from './room1-save-rules.ts';
 import { SAVE_KEY } from './save.ts';
 import type { StoragePort } from './save.ts';
 import { parseMuseumSave } from './museum-save.ts';
-import { SITE, ERYOPS_SITE, SITES } from '../content/journey.ts';
-import { mapSite } from '../content/world-map.ts';
-import { displayedExhibits } from '../game/purchases.ts';
-import { createTravelSave, migrateTravelSave, siteOwned } from '../game/world-map.ts';
+import { SITE, ERYOPS_SITE, SITES } from './contracts/journey-v12.ts';
+import { mapSite, siteOwned } from './contracts/progression-v22.ts';
+import { createTravelSave, migrateTravelSave } from '../game/world-map.ts';
 import type { TravelSave, WorldLocation, SiteOwnership } from '../game/world-map.ts';
 
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
-export function parseTravelSave(raw: string, seed: number, validatedTicketIncome = 0): TravelSave | null {
+export function parseTravelSave(raw: string, seed: number, validatedTicketIncome = 0, rules: ProgressionReadRules = HISTORICAL_READ_RULES): TravelSave | null {
   try {
     const value: unknown = JSON.parse(raw);
     if (!record(value)) return null;
@@ -23,7 +24,7 @@ export function parseTravelSave(raw: string, seed: number, validatedTicketIncome
     for (const item of world.owned) {
       if (!record(item) || Object.keys(item).length !== 3 || item.id !== ERYOPS_SITE.id
         || (item.source !== 'purchase' && item.source !== 'legacy')
-        || item.paid !== (item.source === 'purchase' ? mapSite(ERYOPS_SITE.id)!.cost : 0)) return null;
+        || item.paid !== (item.source === 'purchase' ? rules.siteCost(ERYOPS_SITE.id) : 0)) return null;
       spent += Number(item.paid);
     }
     const owned = world.owned as SiteOwnership[];
@@ -40,15 +41,13 @@ export function parseTravelSave(raw: string, seed: number, validatedTicketIncome
       : SITES.some(site => site.id === base.activeSiteId && (site.id === SITE.id || owned.some(item => item.id === site.id))) ? base.activeSiteId : SITE.id;
     const room = location.kind === 'hub' ? 'museum' : location.kind === 'site-camp' ? 'outdoors' : 'excavation';
     const museum = parseMuseumSave(JSON.stringify({ ...base, version: 14, room, activeSiteId,
-      economy: { ...base.economy, coins: Number(base.economy.coins) + spent } }), seed, validatedTicketIncome);
+      economy: { ...base.economy, coins: Number(base.economy.coins) + spent } }), seed, validatedTicketIncome, rules);
     if (!museum) return null;
     const save: TravelSave = { ...museum, version: 15, economy: { ...museum.economy, coins: Number(base.economy.coins) },
       world: { version: 1, location, owned } };
-    if (owned.length && !save.closedSites.includes(SITE.id)) return null;
-    if (owned.some(item => item.source === 'purchase') && !displayedExhibits(save).length) return null;
+    if (!rules.siteRequirements(save)) return null;
     if (!siteOwned(save, ERYOPS_SITE.id) && (save.economy.sites[ERYOPS_SITE.id]
-      || ERYOPS_SITE.cells.some(cell => save.dig[cell.id] !== undefined)
-      || save.museum.owned.some(item => item.id === 'stand-eryops' && item.source === 'purchase'))) return null;
+      || ERYOPS_SITE.cells.some(cell => save.dig[cell.id] !== undefined))) return null;
     if (location.kind === 'site-pit' && save.closedSites.includes(location.siteId)) {
       save.world.location = { ...location, kind: 'site-camp' }; save.room = 'outdoors';
     }

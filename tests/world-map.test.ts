@@ -135,11 +135,11 @@ test('schema 15 rejects invalid coins, receipts, progress, unearned unlocks and 
   invalid.push({ ...progressed, world: { ...progressed.world, owned: [], location: { kind: 'hub' } } });
   for (const value of invalid) assert.equal(parseTravelSave(JSON.stringify(value), 42), null);
 });
-test('Eryops stand requires purchased or migrated site access, even after the first site closes', () => {
+test('Eryops stand eligibility is independent of second-site ownership', () => {
   const save = funded();
   const wing = { ...save, museum: { ...save.museum, owned: [...save.museum.owned, { id: 'west-wing' as const, source: 'purchase' as const, paid: 18 }] } };
-  assert.equal(purchaseStatus(wing, 'stand-eryops'), 'siteFirst');
-  assert.notEqual(purchaseStatus(buySite(wing, ERYOPS_SITE.id), 'stand-eryops'), 'siteFirst');
+  assert.equal(purchaseStatus(wing, 'stand-eryops'), 'ready');
+  assert.equal(purchaseStatus(buySite(wing, ERYOPS_SITE.id), 'stand-eryops'), 'insufficient', 'site purchase only changes available funds');
 });
 test('failed site purchase and travel publish only after a successful retry; reset drops pending travel', () => {
   let live = funded(), raw = '', fail = false, effects = 0;

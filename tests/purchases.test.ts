@@ -79,7 +79,7 @@ test('expansion and Eryops prerequisites, insufficiency and all purchases surviv
   const poor = { ...save, economy: { ...save.economy, coins: 17 } };
   assert.equal(buyPurchase(poor, 'west-wing'), poor);
   save = reload(buyPurchase(save, 'west-wing'));
-  assert.equal(purchaseStatus({ ...save, closedSites: [] }, 'stand-eryops'), 'siteFirst');
+  assert.equal(purchaseStatus({ ...save, closedSites: [] }, 'stand-eryops'), 'ready');
   save = reload(buyPurchase(save, 'stand-eryops'));
   save = reload(buyPurchase(save, 'stand-dimetrodon'));
   save = reload(display(save, 'eryops'));
@@ -183,7 +183,7 @@ test('every museum ownership layout has reachable purchase spots, displays and e
   }
 });
 
-test('purchasing under the player relocates only when needed and new wing removes the old boundary', () => {
+test('purchasing under the player relocates only when needed and Room 1 has no old wing boundary', () => {
   const fresh = createMuseumSave(42), before = museumLayout(fresh);
   assert.equal(safeMuseumPosition(EXHIBIT, before), EXHIBIT);
   const after = museumLayout(buyPurchase(fresh, 'stand-dimetrodon'));
@@ -193,5 +193,5 @@ test('purchasing under the player relocates only when needed and new wing remove
   const full = museumLayout(migrateMuseumSave(createGameSave(freshJourney(), 42)));
   let p = { x: -7, z: -2.5 };
   for (let i = 0; i < 30; i++) p = movePlayer(p, { x: -1, z: 0 }, 0.05, 'museum', full.obstacles, full.bounds);
-  assert.ok(p.x < -10); assert.equal(isWalkable(p, 'museum', before.obstacles, before.bounds), false);
+  assert.ok(p.x < -10); assert.equal(isWalkable(p, 'museum', before.obstacles, before.bounds), true);
 });

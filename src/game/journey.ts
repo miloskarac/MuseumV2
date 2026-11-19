@@ -1,4 +1,4 @@
-import { DISCOVERY, ALL_DISCOVERIES, SITES, activeSite, CLEANING_AREAS, HITS_PER_LAYER, SHOVEL_CONTACT, SHOVEL_SECONDS, SITE, SITE_PLOTS } from '../content/journey.ts';
+import { DISCOVERY, discoveriesFor, sitesFor, activeSite, CLEANING_AREAS, HITS_PER_LAYER, SHOVEL_CONTACT, SHOVEL_SECONDS, SITE, SITE_PLOTS } from '../content/journey.ts';
 import { PIT_WALLS, PLAYER_RADIUS } from './navigation.ts';
 import type { DigSite } from '../content/journey.ts';
 import type { Point, RoomId } from './navigation.ts';
@@ -7,7 +7,7 @@ import { findIsExposed } from './burial.ts';
 export type JourneyState = {
   // Frozen discovery sub-contract; the full application save is schema 13
   // (GameSave) and adds an economy without changing historical journey rules.
-  version: 12;
+  version: 12 | 26;
   activeSiteId: string;
   room: RoomId;
   // Fraction of a whole column, independent of the content-defined layer count.
@@ -21,13 +21,13 @@ export type JourneyState = {
 
 export const freshJourney = (): JourneyState => ({ version: 12, activeSiteId: SITE.id, room: 'museum', dig: {}, cleaning: {}, collected: [], closedSites: [], placed: [] });
 export const digProgress = (state: JourneyState) => activeSite(state).cells.reduce((sum, cell) => sum + (state.dig[cell.id] ?? 0), 0) / activeSite(state).cells.length;
-export const isUncovered = (state: JourneyState, id: string = DISCOVERY.id) => ALL_DISCOVERIES.some(find => find.id === id)
-  && SITES.some(site => site.requiredDiscoveryIds.includes(id) && findIsExposed(state.dig, site, id));
+export const isUncovered = (state: JourneyState, id: string = DISCOVERY.id) => discoveriesFor(state).some(find => find.id === id)
+  && sitesFor(state).some(site => site.requiredDiscoveryIds.includes(id) && findIsExposed(state.dig, site, id));
 export const isCollected = (state: JourneyState, id: string = DISCOVERY.id) => state.collected.includes(id);
 export const cleaningProgress = (state: JourneyState, id: string = DISCOVERY.id) => isCollected(state, id) ? 1
   : (state.cleaning[id]?.length ?? 0) / CLEANING_AREAS.length;
 export const isClean = (state: JourneyState, id: string = DISCOVERY.id) => isUncovered(state, id) && cleaningProgress(state, id) === 1;
-export const pendingDiscovery = (state: JourneyState, unavailable: readonly string[] = []) => ALL_DISCOVERIES.find(find => !unavailable.includes(find.id) && activeSite(state).requiredDiscoveryIds.includes(find.id) && isUncovered(state, find.id) && !isCollected(state, find.id));
+export const pendingDiscovery = (state: JourneyState, unavailable: readonly string[] = []) => discoveriesFor(state).find(find => !unavailable.includes(find.id) && activeSite(state).requiredDiscoveryIds.includes(find.id) && isUncovered(state, find.id) && !isCollected(state, find.id));
 export function digObstacles(_state: JourneyState) { return PIT_WALLS; }
 export function tileSurface(progress: number, site: DigSite = SITE) {
   const depth = tileDepth(progress, site.grid.levels);

@@ -1,5 +1,6 @@
 import { SITE, SITE_PLOTS } from '../content/journey.ts';
 import { cameraOffset } from '../content/view.ts';
+import { EARLY_PERMIAN_FLOOR, EARLY_PERMIAN_STANDS } from '../content/early-permian-layout.ts';
 export type Point = { x: number; z: number };
 export type Bounds = { minX: number; maxX: number; minZ: number; maxZ: number };
 export type RoomId = 'museum' | 'outdoors' | 'excavation';
@@ -7,17 +8,19 @@ export type RoomId = 'museum' | 'outdoors' | 'excavation';
 export const PLAYER_RADIUS = 0.3;
 export const WALK_SPEED = 3.4;
 
-export const EXHIBIT = { x: -1.2, z: 0.5, width: 7.2, depth: 3.5 };
-export const ERYOPS_EXHIBIT = { x: -11, z: 0.5, width: 7.2, depth: 3.5 };
-export const ASSEMBLED_STANDS = [{ id: 'dimetrodon', ...EXHIBIT }, { id: 'eryops', ...ERYOPS_EXHIBIT }] as const;
-export const MUSEUM_FLOOR = { x: -4.5, z: 0, width: 25, depth: 12 };
+export const EXHIBIT = EARLY_PERMIAN_STANDS[0];
+export const ERYOPS_EXHIBIT = EARLY_PERMIAN_STANDS[2];
+export const ASSEMBLED_STANDS = [EXHIBIT, ERYOPS_EXHIBIT] as const;
+export const MUSEUM_FLOOR = EARLY_PERMIAN_FLOOR;
 export const EXHIBIT_MARKER = { x: EXHIBIT.x, z: EXHIBIT.z - EXHIBIT.depth / 2 - 1.2 };
 export const EXHIBIT_MARKER_RADIUS = 0.85;
-export const SLAB_EXHIBIT = { x: 2.7, z: 4.5, width: 2.2, depth: 1.8 };
+export const SLAB_EXHIBIT = EARLY_PERMIAN_STANDS[1];
+export const WALCHIA_STAND = EARLY_PERMIAN_STANDS[3];
 export const EXHIBIT_SPOTS = [
   { id: 'dimetrodon', ...EXHIBIT_MARKER, buttonId: 'exhibit-button' },
   { id: 'trilobite', x: SLAB_EXHIBIT.x - SLAB_EXHIBIT.width / 2 - 1.05, z: SLAB_EXHIBIT.z, buttonId: 'exhibit-trilobite' },
   { id: 'eryops', x: ERYOPS_EXHIBIT.x, z: ERYOPS_EXHIBIT.z - ERYOPS_EXHIBIT.depth / 2 - 1.2, buttonId: 'exhibit-eryops' },
+  { id: 'walchia', x: -11 - 2.2 / 2 - 1.05, z: 4.5, buttonId: 'exhibit-walchia' },
 ] as const;
 export const BENCH = { x: -5.8, z: -3.8, width: 2.3, depth: 0.8 };
 export const PLANTS: Point[] = [{ x: -6.6, z: 4.5 }, { x: 6.5, z: -4.5 }];
@@ -48,7 +51,7 @@ export const PIT_WALLS: Bounds[] = [
   { ...edge, minZ: edge.maxZ - 0.05, minX: SITE.interaction.x + 0.6 },
 ];
 export const OBSTACLES: Record<RoomId, Bounds[]> = {
-  museum: [...ASSEMBLED_STANDS.map(footprint), footprint(SLAB_EXHIBIT), footprint(BENCH), ...PLANTS.map(plant => footprint({ ...plant, width: 1, depth: 1 }))],
+  museum: [...ASSEMBLED_STANDS.map(footprint), footprint(SLAB_EXHIBIT), footprint(WALCHIA_STAND), footprint(BENCH), ...PLANTS.map(plant => footprint({ ...plant, width: 1, depth: 1 }))],
   excavation: PIT_WALLS,
   outdoors: SITE_PLOTS.map(plot => footprint({ ...plot, width: 2.8, depth: 2.4 })),
 };

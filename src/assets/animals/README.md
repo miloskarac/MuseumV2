@@ -1,5 +1,26 @@
 # Animal reconstruction artwork
 
+## Walchia local reconstruction — 2026-11-16
+
+`walchia-reconstruction.svg` is original vector artwork authored in code by Codex
+for this project at the owner's request. It contains no downloaded or traced
+third-party artwork, fonts, textures, scripts or external references. It ships
+locally through Vite; the linked research is optional reading, not a runtime
+image dependency. The existing third-party licenses below do not apply to this
+original project asset.
+
+Scientific basis: [DiMichele et al. (2007), section 4.1, pp. 260–261](https://repository.si.edu/bitstream/handle/10088/7135/paleo_2007_DiMichele_Abo_RPP_small.pdf)
+describes Walchia-type conifers with an upright trunk, separated tiers of lateral
+branches and small, narrow leaves. The [Sam Noble Museum fossil gallery](https://samnoblemuseum.ou.edu/common-fossils-of-oklahoma/gallery/permian-fossil-gallery/permian-walchia-gallery/)
+supports the comparison with branch impressions. References checked 2026-11-16.
+The graphic interprets this architecture with simplified angular foliage; it is
+not a species-level reconstruction, scale reference or claim of known coloration.
+No flowers, fruit, modern pine cones or unrelated plant photograph are used.
+The educational card shows the recovered branch alongside this living-plant
+illustration, with the reconstruction label and uncertainty always visible.
+
+## Existing animal images
+
 Downloaded 2026-10-21 as Wikimedia Commons 960px thumbnails and bundled locally. No hotlinks or external image requests are used during play. Images are unaltered except for Wikimedia's proportional thumbnail resizing. CSS uses `object-fit: contain`, with no cropping, recoloring or mirroring.
 
 | Local file | Work / source | Attribution | License selected |

@@ -3,7 +3,7 @@ import { pendingDiscovery } from '../game/journey';
 import { text } from '../content/prototype';
 import { ARRIVAL, START, EXHIBIT_MARKER_RADIUS, destinationAt, movePlayer } from '../game/navigation';
 import { activeSite, sitePlot, siteFront, SITE_PLOTS, journeyText as t } from '../content/journey';
-import { EXHIBITS, exhibitDefinition } from '../content/exhibit';
+import { ROOM1_EXHIBITS, exhibitDefinition } from '../content/exhibit';
 import type { ExhibitId } from '../content/exhibit';
 import { brush, collectFossil, stepDigging, digObstacles, freshJourney, isSiteComplete, nearDig, siteAvailability } from '../game/journey';
 import { completionPhase, stepCompletion } from '../game/site-completion';
@@ -11,17 +11,20 @@ import type { CleanupPop } from '../game/site-completion';
 import type { DigSwing, JourneyState } from '../game/journey';
 import { createKeyboard } from '../input/keyboard';
 import { SAVE_KEY } from '../persistence/save';
-import { loadPaymentSave } from '../persistence/payment-save';
-import { createPaymentSave, createPurchasePaymentSimulation } from '../game/purchase-payments';
+import { loadRoom1Game } from '../persistence/room1-game-save';
+import { createRoom1Game } from '../game/room1-economy';
+import { mvpProgressHint, mvpNeedsRecoveryNotice, room1CompletionTransition } from '../game/mvp-progression';
+import { createRoomCompletionUi } from '../ui/room-completion';
+import { collectNearbyTicketRevenue } from '../game/cash';
+import { createPurchasePaymentSimulation } from '../game/purchase-payments';
 import { buyUpgrade } from '../game/upgrades';
 import { playerWalkRate, playerDigRate } from '../game/upgrade-stats';
 import { WALK_SPEED } from '../game/navigation';
 import { createUpgradeUi } from '../ui/upgrades';
 import { carriedFinds, atStorage, canCleanStored, brushStored, collectStored, settleDeliveries } from '../game/storage';
-import { ALL_DISCOVERIES } from '../content/journey';
+import { ROOM1_DISCOVERIES } from '../content/journey';
 import { createStorageUi } from '../ui/storage';
 import { createVisitorSimulation } from '../game/visitor-simulation';
-import { ticketIncome } from '../game/visitors';
 import { createVisitorUi } from '../ui/visitors';
 import { createCommitter } from './commit';
 import { createSaveSession } from '../persistence/session';
@@ -55,6 +58,7 @@ export function startPrototype(root: HTMLElement): () => void {
   const helpersEnabled = import.meta.env.DEV && new URLSearchParams(location.search).get('helpers') === '1';
   const storageKey = helpersEnabled ? HELPER_QA_KEY : purchasesEnabled ? PURCHASE_QA_KEY : SAVE_KEY;
   const hud = createHud(root);
+  const roomCompletionUi = createRoomCompletionUi(root);
   let world: ReturnType<typeof createWorld>;
   try {
     world = createWorld(hud.canvas, true, true);
@@ -65,7 +69,7 @@ export function startPrototype(root: HTMLElement): () => void {
   }
   const keyboard = createKeyboard();
   let state = freshJourney();
-  let game: PlaySave = createPaymentSave(0);
+  let game: PlaySave = createRoom1Game(0);
   let layout = museumLayout(game);
   let selectedPurchase: string | null = null;
   let position = { ...START };
@@ -73,7 +77,7 @@ export function startPrototype(root: HTMLElement): () => void {
   let storedSelection: string | null = null;
   const unavailableFinds = () => 'custody' in game ? Object.keys(game.custody) : [];
   const manualFind = () => pendingDiscovery(state, unavailableFinds());
-  const cleaningFind = () => storedSelection ? ALL_DISCOVERIES.find(f => f.id === storedSelection) : manualFind();
+  const cleaningFind = () => storedSelection ? ROOM1_DISCOVERIES.find(f => f.id === storedSelection) : manualFind();
   let beforeReset: Panel = null;
   let recovery = false;
   let saveFailed = false;
@@ -100,6 +104,7 @@ export function startPrototype(root: HTMLElement): () => void {
     swing = null;
     world.animateDig(null);
     keyboard.clear(); activity = mode;
+    roomCompletionUi.setBlocked(!!mode);
     world.placePlayer(position, { x: 0, z: -1 }, false, 0);
     ui.show(mode); ui.update(state, nearDig(state, position), position);
     updatePurchases();
@@ -122,7 +127,8 @@ export function startPrototype(root: HTMLElement): () => void {
     if ('helpers' in game) helperUi?.update(game, activity === 'helper', !canMutate(), !!activity, !!helpers.pose()?.moving);
     if ('custody' in game) storageUi?.update(game, position, activity === 'storage', !canMutate(), !!activity, world.labels().storage);
   }
-  function publish(next: PlaySave) {
+  function publish(next: PlaySave, cashPickup = false) {
+    const celebrate = next.version === 26 && (game.version === 25 || game.version === 26) && room1CompletionTransition(game, next);
     const earned = next.economy.coins - game.economy.coins;
     if (earned < 0) economyUi.clearGain();
     game = next; state = museumJourney(next);
@@ -133,10 +139,11 @@ export function startPrototype(root: HTMLElement): () => void {
       position = safeMuseumPosition(position, layout, layout.spots.find(spot => spot.id === offer?.exhibit));
       world.placePlayer(position, { x: 0, z: -1 }, false, 0);
     }
-    economyUi.balance(game.economy.coins, earned);
+    economyUi.balance(game.economy.coins, earned, cashPickup);
     world.updateJourney(state, unavailableFinds());
     ui.update(state, nearDig(state, position), position);
     updatePurchases();
+    if (celebrate) roomCompletionUi.show();
   }
   function accept(next: JourneyState, immediate = false, after = () => {}): boolean {
     if (!canMutate()) return false;
@@ -148,6 +155,7 @@ export function startPrototype(root: HTMLElement): () => void {
     publish(candidate); after(); return true;
   }
   function restore(saved: PlaySave, restored: boolean) {
+    roomCompletionUi.hide();
     purchasePayments.reset();
     storedSelection = null;
     let next = museumJourney(saved);
@@ -173,14 +181,17 @@ export function startPrototype(root: HTMLElement): () => void {
   }
   function load() {
     if (!session.active() || conflict) return;
-    const result = loadPaymentSave(storage, randomSeed());
+    const result = loadRoom1Game(storage, randomSeed());
     if (result.kind === 'ready') {
       helperUi?.recovered('unassigned' in result && result.unassigned);
       recovery = false; open(null); committer.enable();
       // Persist fresh seeds/manifests and migration before any play can earn money.
       const candidate = result.save.room === 'excavation' && isSiteComplete(museumJourney(result.save))
         ? { ...result.save, room: 'outdoors' as const } : result.save;
-      committer.commit(candidate, saved => restore(saved, result.restored));
+      committer.commit(candidate, saved => {
+        restore(saved, result.restored);
+        if (result.restored && mvpNeedsRecoveryNotice(candidate)) open('milestone');
+      });
     }
     else {
       committer.block();
@@ -233,7 +244,7 @@ export function startPrototype(root: HTMLElement): () => void {
       if (committer.reset()) {
         developmentSpeed?.reset(); recovery = false;
         helperUi?.recovered(false);
-        committer.commit(createPaymentSave(randomSeed()), saved => restore(saved, false));
+        committer.commit(createRoom1Game(randomSeed()), saved => restore(saved, false));
       } else ui.error(t.resetFailed);
     },
     retry() { if (!session.active() || conflict) return; if (recovery) load(); else committer.flush(); },
@@ -383,7 +394,12 @@ export function startPrototype(root: HTMLElement): () => void {
           : 'world' in game ? campObstacles(state.activeSiteId) : undefined,
         state.room === 'museum' ? layout.bounds : undefined, WALK_SPEED * playerWalkRate(game));
       const moving = Math.hypot(next.x - position.x, next.z - position.z) > 0.0001;
+      const previous = position;
       position = next;
+      if ('pendingTicketRevenue' in game) {
+        const collected = collectNearbyTicketRevenue(game, position, previous);
+        if (collected !== game) committer.commit(collected, saved => publish(saved, true));
+      }
       const plot = state.room === 'outdoors' ? SITE_PLOTS.find(plot => siteAvailability(state, plot.number) === 'open'
         && (!('world' in game) || plot.id === state.activeSiteId)
         && Math.hypot(position.x - plot.entrance.x, position.z - plot.entrance.z) <= 0.62) : undefined;
@@ -472,26 +488,29 @@ export function startPrototype(root: HTMLElement): () => void {
     advanceSimulation(world.engine.getDeltaTime() / 1000, gameSpeed, stepSimulation);
     ui.update(state, nearDig(state, position), position);
     updatePurchases();
-    const needsStand = EXHIBITS.some(exhibit => !standAvailable(game, exhibit.id)
+    const needsStand = ROOM1_EXHIBITS.some(exhibit => !standAvailable(game, exhibit.id)
       && exhibit.parts.some(part => !state.placed.includes(part)));
     if (game.version !== 13 && state.room === 'museum' && !activity && layout.purchases.length && needsStand) {
       root.querySelector('#room-hint')!.textContent = purchaseText.hint;
     }
-    if ('visitors' in game) world.updateTicketIncome(ticketIncome(game.visitors.sales));
+    if ((game.version === 25 || game.version === 26) && state.room === 'museum' && !activity)
+      root.querySelector('#room-hint')!.textContent = mvpProgressHint(game);
+    if ('pendingTicketRevenue' in game) world.updatePendingCash(game.pendingTicketRevenue);
     world.render();
     const labels = world.labels();
     if ('custody' in game) storageUi.update(game, position, activity === 'storage', !canMutate(), !!activity, labels.storage);
     if ('visitors' in game) {
       world.updateVisitors(visitors.poses(), 0);
       visitorUi.update(game, position, !!activity || !canMutate(), labels.cashier ? { x: labels.cashier.x, z: labels.cashier.y } : null,
-        labels.entrance ? { x: labels.entrance.x, z: labels.entrance.y } : null);
+        labels.entrance ? { x: labels.entrance.x, z: labels.entrance.y } : null,
+        labels.cash ? { x: labels.cash.x, z: labels.cash.y } : null);
     }
     hud.placeLabels(labels); ui.placeSites(labels.sites);
     purchaseUi?.place(labels.purchases, !canMutate() || !!activity);
   };
   world.engine.runRenderLoop(frame);
   return () => {
-    checkpointHelperPause(); depositInterrupted(); committer.flush(); committer.dispose(); session.dispose(); keyboard.dispose(); purchaseUi?.dispose(); mapUi?.dispose(); helperUi?.dispose(); storageUi.dispose(); upgradeUi.dispose(); visitorUi.dispose(); ui.dispose(); economyUi.dispose();
+    checkpointHelperPause(); depositInterrupted(); committer.flush(); committer.dispose(); session.dispose(); keyboard.dispose(); purchaseUi?.dispose(); mapUi?.dispose(); helperUi?.dispose(); storageUi.dispose(); upgradeUi.dispose(); visitorUi.dispose(); roomCompletionUi.dispose(); ui.dispose(); economyUi.dispose();
     window.removeEventListener('blur', suspend); window.removeEventListener('pagehide', pagehide);
     window.removeEventListener('pageshow', pageshow); window.removeEventListener('storage', externalSave);
     document.removeEventListener('visibilitychange', suspend);

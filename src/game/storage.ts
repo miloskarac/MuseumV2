@@ -1,16 +1,22 @@
-import { SITES } from '../content/journey.ts';
+import type { Room1GameSave } from './room1-economy.ts';
+import type { MvpSave } from './mvp-economy.ts';
+import { sitesFor } from '../content/journey.ts';
 import { storageApproach } from '../content/storage.ts';
 import { brush, collectFossil, isUncovered, pendingDiscovery } from './journey.ts';
 import type { BrushPoint } from './journey.ts';
 import { advanceMuseum, museumJourney } from './purchases.ts';
 import { createHelperSave } from './helpers.ts';
 import type { UpgradeSave } from './upgrades.ts';
+import type { CashSave } from './cash.ts';
+import type { LedgerSave } from './ticket-ledger.ts';
+import type { RoomSave } from './room-ownership.ts';
+import type { CreditSave } from './expansion-credit.ts';
 import type { PaymentSave } from './purchase-payments.ts';
 import type { HelperSave } from './helpers.ts';
 import type { Point } from './navigation.ts';
 export type Custody = { siteId: string; location: 'storage' } | { siteId: string; location: 'delivery'; helperId: string };
 export type StorageSave = Omit<HelperSave, 'version'> & { version: 18; custody: Record<string, Custody> };
-export type StoragePlaySave = StorageSave | UpgradeSave | PaymentSave;
+export type StoragePlaySave = StorageSave | UpgradeSave | PaymentSave | CashSave | LedgerSave | RoomSave | CreditSave | MvpSave | Room1GameSave;
 export const migrateStorageSave = (save: HelperSave): StorageSave => ({ ...save, version: 18, custody: {} });
 export const createStorageSave = (seed: number) => migrateStorageSave(createHelperSave(seed));
 export const storedFinds = (save: StoragePlaySave, siteId = save.activeSiteId) => Object.keys(save.custody)
@@ -21,7 +27,7 @@ export const manualDiscovery = (save: StoragePlaySave) => pendingDiscovery(museu
 export function claimHelperFinds<T extends StoragePlaySave>(before: StoragePlaySave, after: T): T {
   const state = museumJourney(before), next = museumJourney(after), custody = { ...after.custody };
   let changed = false;
-  for (const id of SITES.find(s => s.id === after.activeSiteId)!.requiredDiscoveryIds) {
+  for (const id of sitesFor(after).find(s => s.id === after.activeSiteId)!.requiredDiscoveryIds) {
     if (!isUncovered(state, id) && isUncovered(next, id) && !before.cleaning[id] && !after.collected.includes(id) && !custody[id]) {
       custody[id] = { siteId: after.activeSiteId, location: 'delivery', helperId: 'helper-1' }; changed = true;
     }

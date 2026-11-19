@@ -1,8 +1,7 @@
-import { CLEANING_AREAS, DISCOVERY, ELIGIBLE_AREAS, LEGACY_SITE as SITE, LEGACY_SLAB_SITE, LEGACY_SHARED_SITE, LEGACY_ERYOPS_SITE, LEGACY_FOOTPRINT_SITES, SITES } from '../content/journey.ts';
-import { GROUPS, ALL_PARTS, FIRST_PARTS, SLAB_PART } from '../content/exhibit.ts';
-import { freshJourney } from '../game/journey.ts';
+import { CLEANING_AREAS, DISCOVERY, ELIGIBLE_AREAS, LEGACY_SITE as SITE, LEGACY_SLAB_SITE,
+  LEGACY_SHARED_SITE, LEGACY_ERYOPS_SITE, LEGACY_FOOTPRINT_SITES, SITES, GROUPS, ALL_PARTS,
+  FIRST_PARTS, SLAB_PART, freshJourney, findIsExposed } from './contracts/journey-v12.ts';
 import type { JourneyState } from '../game/journey.ts';
-import { findIsExposed } from '../game/burial.ts';
 
 // Historical schemas 1–12 and the reusable snapshot writer. The live game reads
 // its schema-13 economy envelope through game-save.ts, which reuses this parser.

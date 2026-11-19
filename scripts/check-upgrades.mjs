@@ -1,3 +1,4 @@
+import { parseCreditSave } from '../src/persistence/credit-save.ts';
 // node scripts/check-upgrades.mjs <Playwright index.mjs> <Vite URL>
 import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
@@ -24,7 +25,7 @@ await context.addInitScript(() => Object.defineProperty(document, 'hidden', { co
 const page = await context.newPage(), errors = [];
 page.on('pageerror', e => errors.push(e.message));
 const saved = () => page.evaluate(key => JSON.parse(localStorage.getItem(key)), SAVE_KEY);
-const shot = name => page.screenshot({ path: `docs/qa/upgrades-${name}.png` });
+const shot = name => page.screenshot({ path: `docs/qa/${process.argv[4] || "upgrades"}-${name}.png` });
 async function ready() {
   await page.waitForFunction(() => document.querySelector('.session-blocker')?.hidden && document.querySelector('#coin-count')?.textContent !== '—');
   await page.evaluate(async () => {
@@ -79,7 +80,7 @@ async function moveDistance() {
 }
 try {
   await page.goto(process.argv[3]); await ready(); await ticks(1);
-  assert.equal((await saved()).version, 19); await openUpgrades();
+  assert.equal((await saved()).version, 24); await openUpgrades();
   for (const id of ['boots', 'shovel', 'helper-tools']) assert.equal(await buy(id).isDisabled(), true);
   await shot('locked'); await page.locator('#activity-close').click();
   // A genuine schema-18 checkpoint migrates without any free purchase.
@@ -110,7 +111,7 @@ try {
   await page.locator('#activity-close').click(); await page.reload(); await ready();
   assert.deepEqual((await saved()).helpers.owned[0].task, task);
   await openUpgrades(); await buy('boots').click(); await buy('shovel').click();
-  const owned = await saved(); assert.equal(owned.upgrades.owned.length, 3); assert.ok(parseUpgradeSave(JSON.stringify(owned), 42));
+  const owned = await saved(); assert.equal(owned.upgrades.owned.length, 3); assert.ok(parseCreditSave(JSON.stringify(owned), 42));
   // Real movement and shovel ticks in the pit retain upgrade ownership after travel.
   await page.locator('#activity-close').click();
   await page.locator('#open-map').click(); await page.locator('[data-travel="eryops-dig"]').click(); await ticks(1);

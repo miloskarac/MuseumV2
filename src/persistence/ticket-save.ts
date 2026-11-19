@@ -1,9 +1,9 @@
 import { SAVE_KEY } from './save.ts';
 import type { StoragePort } from './save.ts';
 import { parseTravelSave } from './travel-save.ts';
-import { createTicketSave, migrateTicketSave, retirePaid, ticketIncome, ticketPrice } from '../game/visitors.ts';
+import { createTicketSave, migrateTicketSave, retirePaid, ticketIncome } from '../game/visitors.ts';
 import type { TicketSave } from '../game/visitors.ts';
-import { VISITORS } from '../content/visitors.ts';
+import { VISITORS, ticketPrice } from './contracts/progression-v22.ts';
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const integer = (v: unknown): v is number => Number.isSafeInteger(v) && Number(v) >= 0;
 export function parseTicketSave(raw: string, seed: number): TicketSave | null {

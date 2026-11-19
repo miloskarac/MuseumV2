@@ -3,7 +3,7 @@ import type { Scene } from '@babylonjs/core/scene';
 import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import type { Shapes } from './shapes';
 import type { VisitorPose } from '../game/visitor-simulation';
-import { CASHIER, CASHIER_STATION, CASH_PILE, ENTRANCE_POSTS, VISITOR_ENTRANCE, VISITORS, queuePoint } from '../content/visitors';
+import { CASHIER, CASHIER_STATION, CASH_PILE, ENTRANCE_POSTS, VISITOR_ENTRANCE, VISITOR_CAPACITIES, queuePoint } from '../content/visitors';
 
 export function buildCashier(shape: Shapes, material: (name: string, hex: string) => StandardMaterial) {
   const teal = material('cashier-teal', '#428e94'), wood = material('cashier-wood', '#bd8753');
@@ -18,8 +18,8 @@ export function buildCashier(shape: Shapes, material: (name: string, hex: string
     0.07, CASHIER_STATION.z + Math.sin(i * Math.PI / 20) * CASHIER_STATION.radius]);
   shape.tube('cashier-circle', points, 0.045, teal);
   // Open front doorway: the lintel stays above visitor heads and the queue stays visible.
-  const stone = material('entrance-stone', '#e9e7cf'), gold = material('ticket-gold', '#efb72f');
-  const shine = material('ticket-gold-face', '#ffe08a');
+  const stone = material('entrance-stone', '#e9e7cf');
+  const paper = material('ticket-banknote', '#83ca84'), ink = material('ticket-banknote-ink', '#26774e');
   for (const post of ENTRANCE_POSTS) {
     shape.beveledBox('entrance-post', [post.width, 2.25, post.depth], [post.x, 1.12, post.z], wood);
     shape.beveledBox('entrance-foot', [post.width, 0.28, post.depth], [post.x, 0.14, post.z], stone);
@@ -31,26 +31,31 @@ export function buildCashier(shape: Shapes, material: (name: string, hex: string
   shape.box('entrance-mat', [1.85, 0.025, 0.95], [VISITOR_ENTRANCE.x, 0.058, -5.4], teal);
   shape.tube('entrance-arrow', [[VISITOR_ENTRANCE.x - 0.2, 0.085, -5.4],
     [VISITOR_ENTRANCE.x, 0.085, -5.15], [VISITOR_ENTRANCE.x + 0.2, 0.085, -5.4]], 0.035, cream);
-  for (let i = 0; i < VISITORS.queueCapacity; i++) {
+  for (let i = 0; i < VISITOR_CAPACITIES[1].waiting; i++) {
     const point = queuePoint(i);
     shape.box('queue-mark', [0.58, 0.025, 0.1], [point.x, 0.06, point.z - 0.32], wood);
   }
   shape.beveledBox('cash-pile-tray', [CASH_PILE.width, 0.22, CASH_PILE.depth], [CASH_PILE.x, 0.14, CASH_PILE.z], teal);
   shape.beveledBox('cash-pile-tray-top', [0.82, 0.05, 0.82], [CASH_PILE.x, 0.27, CASH_PILE.z], wood);
-  // A bounded visual receipt of saved ticket income, never a collectible or a second balance.
-  const stacks = [[0, 0], [-0.23, -0.23], [0.23, -0.23], [-0.23, 0.23], [0.23, 0.23]];
-  const coins = Array.from({ length: CASH_PILE.maxCoins }, (_, i) => {
-    const [x, z] = stacks[i % stacks.length], y = 0.34 + Math.floor(i / stacks.length) * 0.085;
-    const coin = shape.cylinder('ticket-coin', 0.075, 0.28, 0.28, [CASH_PILE.x + x, y, CASH_PILE.z + z], gold);
-    const face = shape.cylinder('ticket-coin-face', 0.008, 0.21, 0.21, [CASH_PILE.x + x, y + 0.04, CASH_PILE.z + z], shine);
-    coin.setEnabled(false); face.setEnabled(false);
-    return [coin, face];
+  const pickupRing = shape.tube('cash-pickup-radius', Array.from({ length: 49 }, (_, i): [number, number, number] =>
+    [CASH_PILE.x + Math.cos(i * Math.PI / 24) * CASH_PILE.pickupRadius, 0.065,
+      CASH_PILE.z + Math.sin(i * Math.PI / 24) * CASH_PILE.pickupRadius]), 0.035, ink);
+  pickupRing.setEnabled(false);
+  // Reuse a fixed mesh pool; the saved amount, not the pile height, is authoritative.
+  const notes = Array.from({ length: CASH_PILE.maxNotes }, (_, i) => {
+    const x = CASH_PILE.x + (i % 2 ? 0.035 : -0.035), y = 0.32 + i * 0.035;
+    const note = shape.box('ticket-banknote', [0.78, 0.025, 0.42], [x, y, CASH_PILE.z], paper);
+    const mark = shape.box('ticket-banknote-mark', [0.18, 0.004, 0.29], [x, y + 0.015, CASH_PILE.z], ink);
+    const stripe = shape.box('ticket-banknote-stripe', [0.04, 0.004, 0.29], [x - 0.27, y + 0.015, CASH_PILE.z], cream);
+    for (const mesh of [note, mark, stripe]) { mesh.isPickable = false; mesh.setEnabled(false); }
+    return [note, mark, stripe];
   });
   let shown = 0;
   return (income: number) => {
-    const count = Math.min(CASH_PILE.maxCoins, income);
+    const count = Math.min(CASH_PILE.maxNotes, income);
     if (count === shown) return;
-    coins.forEach((meshes, i) => meshes.forEach(mesh => mesh.setEnabled(i < count)));
+    notes.forEach((meshes, i) => meshes.forEach(mesh => mesh.setEnabled(i < count)));
+    pickupRing.setEnabled(count > 0);
     shown = count;
   };
 }

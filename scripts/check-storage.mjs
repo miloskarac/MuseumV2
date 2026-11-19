@@ -1,3 +1,4 @@
+import { parseCreditSave } from '../src/persistence/credit-save.ts';
 // node scripts/check-storage.mjs <Playwright index.mjs> <Vite URL>
 import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
@@ -24,7 +25,7 @@ await context.addInitScript(() => Object.defineProperty(document, 'hidden', { co
 const page = await context.newPage(), errors = [];
 page.on('pageerror', e => errors.push(e.message));
 const saved = () => page.evaluate(key => JSON.parse(localStorage.getItem(key)), SAVE_KEY);
-const shot = name => page.screenshot({ path: `docs/qa/storage-${name}.png` });
+const shot = name => page.screenshot({ path: `docs/qa/${process.argv[4] || "storage"}-${name}.png` });
 async function ready() {
   await page.waitForFunction(() => document.querySelector('.session-blocker')?.hidden && document.querySelector('#coin-count')?.textContent !== '—');
   await page.evaluate(async () => {
@@ -85,7 +86,7 @@ async function waitDelivery() {
 }
 try {
   await page.goto(process.argv[3]); await ready(); await ticks(1);
-  assert.equal((await saved()).version, 19); assert.equal(await page.locator('#open-helper').count(), 1);
+  assert.equal((await saved()).version, 24); assert.equal(await page.locator('#open-helper').count(), 1);
   await seed(prepared()); await walkTo({ x: 1.5, z: 5 }); await shot('pit-before-delivery');
   await waitDelivery(); const carrying = await saved(); assert.equal(carrying.collected.includes(findId), false);
   assert.equal(await page.locator('dialog').evaluate(d => d.open), false);
@@ -122,7 +123,7 @@ try {
   await failWrites(false); await page.locator('#activity-retry-save').evaluate(b => { b.click(); b.click(); });
   const collected = await saved(); assert.equal(collected.collected.filter(id => id === findId).length, 1); assert.equal(collected.custody[findId], undefined);
   assert.equal(collected.economy.coins, beforeCollect.economy.coins); assert.equal(collected.closedSites.includes(ERYOPS_SITE.id), false);
-  assert.ok(parseUpgradeSave(JSON.stringify(collected), 42));
+  assert.ok(parseCreditSave(JSON.stringify(collected), 42));
   // Voluntary travel and reassignment interrupt a live delivery, not just a reload fixture.
   await seed(prepared()); await walkTo({ x: 1.5, z: 5 }); await waitDelivery();
   await page.locator('#open-map').click(); await page.locator('[data-travel="hub"]').click();
@@ -146,10 +147,10 @@ try {
   // The helper QA slot migrates independently; resets never affect the normal game.
   const normal = await saved(); await page.evaluate(key => localStorage.setItem(key, 'purchase-qa-sentinel'), PURCHASE_QA_KEY);
   await page.goto(new URL('?helpers=1', process.argv[3]).href); await ready(); await ticks(1);
-  assert.equal(await page.evaluate(key => JSON.parse(localStorage.getItem(key)).version, HELPER_QA_KEY), 19);
+  assert.equal(await page.evaluate(key => JSON.parse(localStorage.getItem(key)).version, HELPER_QA_KEY), 24);
   await page.locator('#reset-button').click(); await page.locator('#confirm-reset').click(); await ticks(1);
   assert.deepEqual(await saved(), normal); assert.equal(await page.evaluate(key => localStorage.getItem(key), PURCHASE_QA_KEY), 'purchase-qa-sentinel');
   assert.deepEqual(errors, []);
-  console.log(`PASS: Edge ${browser.version()}; normal schema 19, helper exposure/carry/deposit, modal/hidden pause, failed deposit/collection retry, partial cleaning/travel/reload, camp collection, original-site custody, independent QA reset; 1440x1000, 1280x720, 390x844.`);
+  console.log(`PASS: Edge ${browser.version()}; normal schema 24, helper exposure/carry/deposit, modal/hidden pause, failed deposit/collection retry, partial cleaning/travel/reload, camp collection, original-site custody, independent QA reset; 1440x1000, 1280x720, 390x844.`);
 } catch (error) { console.log('Errors:', errors); await shot('failure'); console.log('State:', await saved().catch(() => null)); throw error; }
 finally { await browser.close(); }

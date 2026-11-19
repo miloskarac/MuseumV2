@@ -1,5 +1,5 @@
 import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { CLEANUP_TILE_SECONDS, ALL_DISCOVERIES, SITE, soilColorIndex } from '../content/journey';
+import { CLEANUP_TILE_SECONDS, ROOM1_DISCOVERIES, SITE, soilColorIndex } from '../content/journey';
 import type { CleanupPop } from '../game/site-completion';
 import type { DigSite } from '../content/journey';
 import { isCollected, tileDepth } from '../game/journey';
@@ -7,7 +7,7 @@ import type { JourneyState } from '../game/journey';
 import type { Shapes } from './shapes';
 import { FOSSIL_PROFILES } from './fossil-profiles';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
-import { EXHIBITS } from '../content/exhibit';
+import { ROOM1_EXHIBITS } from '../content/exhibit';
 import { findBurial } from '../game/burial';
 
 export function buildDiscovery(shape: Shapes, bone: StandardMaterial, soils: StandardMaterial[], site: DigSite = SITE) {
@@ -35,8 +35,8 @@ export function buildDiscovery(shape: Shapes, bone: StandardMaterial, soils: Sta
       seam.parent = tile;
     });
   });
-  const finds = ALL_DISCOVERIES.filter(find => site.requiredDiscoveryIds.includes(find.id)).map(find => {
-    const onSlab = EXHIBITS.find(exhibit => (exhibit.parts as readonly string[]).includes(find.groupId))?.mode === 'whole';
+  const finds = ROOM1_DISCOVERIES.filter(find => site.requiredDiscoveryIds.includes(find.id)).map(find => {
+    const onSlab = ROOM1_EXHIBITS.find(exhibit => (exhibit.parts as readonly string[]).includes(find.groupId))?.mode === 'whole';
     const cells = site.cells.filter(c => c.discoveryId === find.id);
     const burial = findBurial(site, find.id);
     const left = Math.min(...cells.map(c => c.x)) - tileSize / 2;

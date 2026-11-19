@@ -10,9 +10,9 @@ import { advanceMuseum, museumJourney, buyPurchase, placeOwnedGroup, migrateMuse
 import { migrateTravelSave, buySite, travelTo } from '../src/game/world-map.ts';
 import { parseTicketSave, loadTicketSave } from '../src/persistence/ticket-save.ts';
 import { parseTravelSave } from '../src/persistence/travel-save.ts';
-import { CASHIER, CASHIER_STATION, VISITOR_DOOR, VIEW_POINTS, queuePoint } from '../src/content/visitors.ts';
+import { CASHIER, CASHIER_STATION, VISITOR_DOOR, queuePoint } from '../src/content/visitors.ts';
 import { ARRIVAL, isWalkable } from '../src/game/navigation.ts';
-import { createVisitorSimulation, visitorPath, visitorWalkable } from '../src/game/visitor-simulation.ts';
+import { createVisitorSimulation, visitorPath, visitorWalkable, viewingPositions } from '../src/game/visitor-simulation.ts';
 import { museumLayout } from '../src/game/museum-layout.ts';
 import { createCommitter } from '../src/app/commit.ts';
 
@@ -141,7 +141,7 @@ test('zero soil income permits both first stand orders and every remaining purch
 test('visitor routes remain clear of furniture and interaction circles in compact and expanded halls', () => {
   for (const save of [createTicketSave(1), buyPurchase(createTicketSave(1), 'stand-dimetrodon'), legacy(3)]) {
     const layout = museumLayout(save);
-    const targets = [queuePoint(0), queuePoint(1), queuePoint(2), ...EXHIBITS.filter(e => layout.spots.some(s => s.id === e.id)).map(e => VIEW_POINTS[e.id])];
+    const targets = [queuePoint(0), queuePoint(1), queuePoint(2), ...layout.spots.flatMap(e => viewingPositions(e.id, layout, () => 0.5))];
     for (const target of targets) {
       const path = visitorPath(VISITOR_DOOR, target, layout); assert.ok(path.length, JSON.stringify(target));
       let previous = VISITOR_DOOR;
@@ -201,7 +201,7 @@ test('building a stand during a tour moves an overlapped visitor to a safe route
   save = buyPurchase(save, 'stand-trilobite');
   save = advanceMuseum(save, placeOwnedGroup(save, 'trilobite', 'trilobite-whole', 'trilobite-whole')) as TicketSave;
   save = payVisitor(arriveVisitor(save), 1, CASHIER_STATION, true);
-  const sim = createVisitorSimulation(); sim.reset(save); let built = false;
+  const sim = createVisitorSimulation(() => 0); sim.reset(save); let built = false;
   for (let i = 0; i < 2000 && save.visitors.visits.some(v => v.id === 1); i++) {
     save = sim.step(save, { x: 0, z: -5 }, 0.05);
     const actor = sim.poses().find(p => p.id === 1);

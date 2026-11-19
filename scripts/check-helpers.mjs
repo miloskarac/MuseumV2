@@ -1,3 +1,4 @@
+import { parseCreditSave } from '../src/persistence/credit-save.ts';
 // node scripts/check-helpers.mjs <Playwright index.mjs> <Vite URL>
 import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
@@ -20,7 +21,7 @@ await context.addInitScript(() => Object.defineProperty(document, 'hidden', { co
 const page = await context.newPage(), errors = [];
 page.on('pageerror', e => errors.push(e.message));
 const saved = () => page.evaluate(key => JSON.parse(localStorage.getItem(key)), HELPER_QA_KEY);
-const shot = name => page.screenshot({ path: `docs/qa/helpers-${name}.png` });
+const shot = name => page.screenshot({ path: `docs/qa/${process.argv[4] || "helpers"}-${name}.png` });
 async function ready() {
   await page.waitForFunction(() => document.querySelector('.session-blocker')?.hidden && document.querySelector('#coin-count')?.textContent !== '—');
   await page.evaluate(async () => {
@@ -68,7 +69,7 @@ try {
   assert.equal(await page.locator('#open-helper').count(), 1);
   await page.evaluate(key => localStorage.setItem(key, 'qa-sentinel'), PURCHASE_QA_KEY);
   await page.goto(new URL('?helpers=1', process.argv[3]).href); await ready(); await ticks(1);
-  assert.equal((await saved()).version, 19); assert.equal((await saved()).helpers.owned.length, 0);
+  assert.equal((await saved()).version, 24); assert.equal((await saved()).helpers.owned.length, 0);
   await page.locator('#open-helper').click(); assert.equal(await page.locator('#hire-helper').isDisabled(), true);
   await page.locator('#activity-close').click();
   await seed(fixture()); await walkTo({ x: 1.5, z: 5 }); await ticks(1); await shot('pit-before');
@@ -105,7 +106,7 @@ try {
   await failWrites(false); await page.locator('#retry-save').evaluate(b => { b.click(); b.click(); });
   await ticks(180); await page.locator('#open-helper').click(); const cleared = await saved();
   assert.ok(cleared.dig[task.cellId] >= 0.5); assert.deepEqual(cleared.collected, [...SITE.requiredDiscoveryIds]);
-  assert.ok(parseUpgradeSave(JSON.stringify(cleared), 42));
+  assert.ok(parseCreditSave(JSON.stringify(cleared), 42));
   await page.locator('[data-helper-site="courtyard-dig"]').click();
   assert.equal((await saved()).helpers.owned[0].task, null); assert.deepEqual((await saved()).dig, cleared.dig);
   await page.locator('[data-helper-site="eryops-dig"]').click(); await page.locator('#activity-close').click();

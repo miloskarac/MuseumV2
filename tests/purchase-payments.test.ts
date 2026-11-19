@@ -78,10 +78,11 @@ test('zero-soil-income play resumes a part-paid expansion after earning tickets 
   for (let i = 0; i < 20; i++) s = sale(s);
   s = reload(buyUpgrade(s, 'boots')); assert.equal(s.payments.partial['west-wing'], 8);
   s = pay(s, 10, 'west-wing'); assert.ok(museumLayout(s).expanded); assert.deepEqual(s.payments.partial, {});
-  // Second-site ownership still gates its stand.
-  assert.equal(contributePurchase(s, 'stand-eryops', spot(s, 'stand-eryops')), s);
+  // Stand deposits now work before second-site ownership.
+  s = reload(contributePurchase(s, 'stand-eryops', spot(s, 'stand-eryops')));
+  assert.equal(s.payments.partial['stand-eryops'], 1);
   for (let i = 0; i < 12; i++) s = sale(s);
-  s = reload(buySite(s, ERYOPS_SITE.id)); s = pay(s, 2, 'stand-eryops');
+  s = reload(buySite(s, ERYOPS_SITE.id)); s = pay(s, 1, 'stand-eryops');
   s = reload(travelTo(travelTo(s, { kind: 'site-camp', siteId: ERYOPS_SITE.id }), { kind: 'site-pit', siteId: ERYOPS_SITE.id }));
   s = reload(advanceMuseum(s, { ...museumJourney(s), dig: { ...s.dig, [ERYOPS_SITE.cells[0].id]: 0.25 } }) as PaymentSave);
   assert.equal(s.payments.partial['stand-eryops'], 2); assert.equal(s.upgrades.owned.length, 1);

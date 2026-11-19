@@ -1,6 +1,7 @@
-import { purchaseDefinition } from '../content/purchases.ts';
+import { HISTORICAL_READ_RULES } from './room1-save-rules.ts';
+import type { ProgressionReadRules } from './room1-save-rules.ts';
+import { purchaseDefinition, validDeposit } from './contracts/progression-v22.ts';
 import type { PurchaseId } from '../content/purchases.ts';
-import { purchaseStatus } from '../game/purchases.ts';
 import { createPaymentSave, migratePaymentSave } from '../game/purchase-payments.ts';
 import type { PaymentSave } from '../game/purchase-payments.ts';
 import { retirePaid } from '../game/visitors.ts';
@@ -10,29 +11,31 @@ import { SAVE_KEY } from './save.ts';
 import type { StoragePort } from './save.ts';
 
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+export function parsePurchasePayments(payments: unknown, rules: ProgressionReadRules = HISTORICAL_READ_RULES): PaymentSave['payments'] | null {
+  if (!record(payments) || payments.version !== 1 || Object.keys(payments).length !== 2 || !record(payments.partial)) return null;
+  for (const [id, paid] of Object.entries(payments.partial)) {
+    const offer = purchaseDefinition(id) ?? rules.extraPurchases.find(p => p.id === id);
+    if (!offer || !Number.isSafeInteger(paid) || Number(paid) <= 0 || Number(paid) >= rules.purchaseCost(id)) return null;
+  }
+  return { version: 1, partial: payments.partial as Partial<Record<PurchaseId, number>> };
+}
+export function validPurchasePayments(save: Parameters<typeof validDeposit>[0], payments: PaymentSave['payments'], rules: ProgressionReadRules = HISTORICAL_READ_RULES) {
+  return Object.keys(payments.partial).every(id => rules.validDeposit(save, id));
+}
 export function parsePaymentSave(raw: string, seed: number): PaymentSave | null {
   try {
     const value: unknown = JSON.parse(raw);
     if (!record(value)) return null;
     if (value.version !== 20) { const old = parseUpgradeSave(raw, seed); return old ? migratePaymentSave(old) : null; }
-    const { payments, ...base } = value;
-    if (!record(payments) || payments.version !== 1 || Object.keys(payments).length !== 2 || !record(payments.partial)
-      || !record(base.economy) || !Number.isSafeInteger(base.economy.coins) || Number(base.economy.coins) < 0) return null;
-    let spent = 0;
-    for (const [id, paid] of Object.entries(payments.partial)) {
-      const offer = purchaseDefinition(id);
-      if (!offer || !Number.isSafeInteger(paid) || Number(paid) <= 0 || Number(paid) >= offer.cost) return null;
-      spent += Number(paid);
-    }
+    const { payments: rawPayments, ...base } = value;
+    const payments = parsePurchasePayments(rawPayments);
+    if (!payments || !record(base.economy) || !Number.isSafeInteger(base.economy.coins) || Number(base.economy.coins) < 0) return null;
+    const spent = Object.values(payments.partial).reduce((sum, paid) => sum + paid, 0);
     const coins = Number(base.economy.coins), accounting = coins + spent;
     if (!Number.isSafeInteger(accounting)) return null;
     // Refund only partial deposits for the frozen schema-19 accounting check.
     const old = parseUpgradeSave(JSON.stringify({ ...base, version: 19, economy: { ...base.economy, coins: accounting } }), seed);
-    if (!old) return null;
-    for (const id of Object.keys(payments.partial)) {
-      const status = purchaseStatus({ ...old, room: 'museum' }, id);
-      if (status !== 'ready' && status !== 'insufficient') return null;
-    }
+    if (!old || !validPurchasePayments(old, payments)) return null;
     return { ...old, version: 20, economy: { ...old.economy, coins },
       payments: { version: 1, partial: payments.partial as Partial<Record<PurchaseId, number>> } };
   } catch { return null; }

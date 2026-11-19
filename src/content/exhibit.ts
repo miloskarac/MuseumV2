@@ -99,5 +99,24 @@ export const EXHIBITS = [
   { id: 'trilobite', mode: 'whole', parts: [SLAB_PART.id], text: trilobiteText, missing: 'Пронађи и очисти фосил на плочи у првом налазишту.' },
   { id: 'eryops', mode: 'assembled', parts: ERYOPS_GROUPS.map(g => g.id), text: eryopsText, missing: 'Пронађи и очисти шест делова ериопса на другом налазишту.' },
 ] as const;
-export type ExhibitId = typeof EXHIBITS[number]['id'];
-export const exhibitDefinition = (id: ExhibitId) => EXHIBITS.find(exhibit => exhibit.id === id)!;
+export const WALCHIA_PART = { id: 'walchia-whole', discoveryId: 'walchia-slab', label: 'Гранчица на плочи' } as const;
+export const walchiaText = {
+  name: 'Валхија', storyTitle: 'Упознај валхију', storyEra: 'Перм · Пре диносауруса',
+  storyIntro: 'Ово је фосил биљке! На плочи се види гранчица.',
+  storyObserve: 'Прати главну гранчицу. Колико мањих гранчица можеш да пронађеш?',
+  storyFacts: [
+    { title: 'Биљка или животиња?', text: 'Валхија је име за фосиле давних четинара. То су биљке, а не животиње.' },
+    { title: 'Када је расла?', text: 'Такви четинари су расли и у доба перма, пре првих диносауруса.' },
+    { title: 'Шта је сачувано?', text: 'У стени могу да остану спљоштени трагови гранчица и листова.' },
+  ],
+} as const;
+export const walchiaReview = { sourceChecked: '2026-11-13', status: 'source-checked-stylized-placeholder',
+  sources: ['https://samnoblemuseum.ou.edu/common-fossils-of-oklahoma/gallery/permian-fossil-gallery/permian-walchia-gallery/'] } as const;
+// Preserve the three-exhibit catalogs used by historical schemas and tests.
+export const ROOM1_EXHIBITS = [...EXHIBITS, { id: 'walchia', mode: 'whole', parts: [WALCHIA_PART.id], text: walchiaText,
+  missing: 'Пронађи и очисти гранчицу на плочи у другом налазишту.' }] as const;
+export const ROOM1_PARTS = [...ALL_PARTS, WALCHIA_PART] as const;
+export type ExhibitId = typeof ROOM1_EXHIBITS[number]['id'];
+export const exhibitDefinition = (id: ExhibitId) => ROOM1_EXHIBITS.find(exhibit => exhibit.id === id)!;
+export const exhibitsFor = (state: { version: number }) => state.version === 26 ? ROOM1_EXHIBITS : EXHIBITS;
+export const partsFor = (state: { version: number }) => state.version === 26 ? ROOM1_PARTS : ALL_PARTS;

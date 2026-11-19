@@ -354,6 +354,130 @@ Reason: Miloš requested this next step after the front visitor entrance.
 Impacts: A paved frontage, crossing aligned with the entrance, sheltered bus stop with a stationary bus, three parking spaces with two parked cars, and small planted beds. Match the existing low-poly scene and both hall sizes; reframe the museum camera without changing its angle or screen-relative controls.
 Bounded implementation assumption: these are scenery in this pass. Player bounds, visitor spawning/service, travel, income and save schema remain unchanged. No bus schedules, vehicle simulation or new outdoor activities are introduced. See [exterior QA](qa/museum-exterior.md).
 
+### 2026-11-07 — Phase 6 gameplay fixes, batch 1
+
+Decision: Ticket sales create pending cashier revenue, collected explicitly by clicking/tapping banknotes. Vary visitors' viewing sides, positions and observation times while preserving navigation and the visitor lifecycle. Remove excavation-site prerequisites from every stand purchase; retain prices and legitimate placement restrictions.
+
+Reason: Miloš's explicit Phase 6 batch-1 bug-fix request.
+
+Impacts: Schema 21 stores `pendingTicketRevenue` separately from spendable coins. Migration preserves previously credited income and starts pending revenue at zero. Collection uses the existing critical commit/retry and writer-lock system. The fixed banknote pool caps at 20 notes, while the Cyrillic collection button shows the exact amount. Tours sample reachable perimeter positions with occupancy preference and 3.5–6.5-second observation times. Eryops still needs the west wing for placement, but neither site-two ownership nor first-site closure gates its stand. Site progression, prices, partial purchase deposits and attended ticket service remain unchanged.
+
+Supersedes: October 24/30 immediate ticket credit and historical coin-pile presentation, and the excavation-site prerequisites for stands. See [batch-1 QA and engineering review](qa/phase6-batch1.md).
+
+### 2026-11-09 — Approve Phase 7.4A Permian room definitions
+
+Decision: Museum 1 is dedicated to the Permian, with three ordered rooms and 17 exhibits (8 large, 9 small). Room 1 contains Dimetrodon, Eryops, trilobite and Walchia, featuring Eryops. Room 2 contains Moschops, Estemmenosuchus, Edaphosaurus, Arthropleura, Glossopteris and Captorhinus, featuring Moschops. Room 3 contains Gorgonops, Scutosaurus, Inostrancevia, Helicoprion, Gorgonops tooth, Dicynodon and a Permian ammonoid, featuring Inostrancevia. Each room requires all its listed exhibits for completion. Room 1 is initially available; completion of the preceding room makes Room 2/3 eligible for purchase, not automatically owned.
+
+Reason: Miloš's explicit Phase 7.4A specification.
+
+Impacts: Add isolated room/exhibit planning definitions and pure derived helpers only. The existing three playable exhibits, west wing, prices, sites, geometry and schema 22 stay unchanged. The other 14 exhibits remain planned; no parts, discoveries, assets, stories or purchase offers are authorized by this definition task. See [Phase 7.4A definitions](phase7/7.4a-room-content-definitions.md).
+
+Supersedes: Earlier uncertainty about the first museum's theme, room sequence and collection size. This does not authorize their gameplay/persistence integration or expansion-credit migration.
+
+Additional explicit constraint: every room's required exhibits must be obtainable, reconstructable and displayable without ownership of any direct or indirect successor room. Validate declared predecessor and required-display dependencies now; reject cycles and successor dependencies. Future site/content integration must enforce the same rule across acquisition, reconstruction and display prerequisites. The site graph is not yet defined, so no excavation unlock rules are invented and full progression reachability is not claimed as verified. This addition changes no live gameplay, purchase rule or persistence contract.
+
+### 2026-11-09 — Complete Phase 7.4B pure room progression rules
+
+Decision: Room completion requires every required fossil's assembled/restored parts, actual display on a correct owned stand, and availability of that stand's assigned room. Replace trusted completed-exhibit ID lists with explicit typed inputs. Reuse one pure display predicate for missing-required-exhibit, featured-exhibit and completion/status queries. Featured completion alone grants no room completion, purchase eligibility, money or bonus.
+
+Reason: Miloš's explicit Phase 7.4B request following the completion verification.
+
+Impacts: Synthetic test-only recipes and stands support planned IDs without activating content. Update the isolated helpers and their callers/tests; retain existing dependency validation. No live purchase commands, economy, schema 22, west-wing credit, sites, fossils or presentation integration. See [Phase 7.4B rules](phase7/7.4b-room-progression-rules.md).
+
+Supersedes: The hypothetical trusted `completedExhibitIds` input from Phase 7.4A. Approved room membership and the no-successor-dependency constraint remain unchanged.
+
+### 2026-11-09 — Phase 7.5A persistent room ownership baseline
+
+Decision: Introduce schema 23 with a version-1 Permian room ownership envelope. Derive initially available Room 1 from a frozen initial-room definition; leave Rooms 2 and 3 unowned. Preserve all historical progress, financial records, west-wing receipts and partial payments. Eligibility remains distinct from ownership.
+
+Reason: Miloš's explicit Phase 7.5A request.
+
+Impacts: Migrate validated schema-22 saves and the supported historical chain, retain the room envelope across existing runtime transitions and use the existing commit/retry/reset/session mechanisms. Accept only empty purchase receipts until future versioned rules can validate room prices and spending. See [Phase 7.5A contract and validation](phase7/7.5a-room-ownership-save-contract.md).
+
+Boundary: No active room purchase, west-wing credit conversion, new content, geometry or live progression gate. Phase 7.5B credit migration and Phase 7.5C purchases require their own explicit contracts and validation. The planned four-exhibit Room 1 gate does not affect the playable west wing.
+
+### 2026-11-09 — Phase 7.5B west-wing investment credit
+
+Decision: Preserve paid west-wing investment as dedicated future-expansion credit: 18 for a valid paid purchase, the exact cumulative amount for partial contributions, and zero for legacy zero-paid ownership or no investment. Continuing existing west-wing payments must update this credit in the same durable transaction. Preserve the original receipts, deposits, current access and purchase behavior.
+
+Reason: Miloš's explicit Phase 7.5B specification.
+
+Impacts: Schema 24 adds a versioned west-wing source record with recognized, remaining and consumed amounts. Recognized/remaining must equal verified investment; consumed remains zero. Credit is neither new income nor spendable cash. Historical validators remain unchanged. See [Phase 7.5B migration and validation](phase7/7.5b-west-wing-credit-migration.md).
+
+Boundary: No credit consumption, room purchase, new gate, content, geometry or UI. Phase 7.5C needs a versioned transaction/accounting extension before spending can be enabled.
+
+### 2026-11-11 — Phase 7.6A future Permian fossil/site dependency graph
+
+Decision: Approve the strict global exhibit/stand order Dimetrodon, trilobite, Eryops, Walchia; Moschops, Arthropleura, Estemmenosuchus, Glossopteris, Edaphosaurus, Captorhinus; Gorgonops, Helicoprion, Scutosaurus, Gorgonops tooth, Inostrancevia, Dicynodon, Permian ammonoid. Preserve the three rooms' membership and featured exhibits. Only the next stand is eligible after valid display of all preceding exhibits and ownership of its room; eligibility never grants ownership.
+
+Decision: Approve eight future site assignments: Dimetrodon/trilobite; Eryops/Walchia; Moschops/Arthropleura; Estemmenosuchus/Glossopteris; Edaphosaurus/Captorhinus; Gorgonops/Helicoprion; Scutosaurus/Gorgonops tooth; Inostrancevia/Dicynodon/Permian ammonoid. Preserve `courtyard-dig` and `eryops-dig`; use specimen-based stable IDs for Sites 3–8. The initial site is free and available without buying a stand. Each later site's eligibility requires its first listed exhibit's purchased stand and the site's owned room. Purchase the site once for all its fossils; early acquisition cannot bypass stand order. Prices 0/20/30/40/50/60/75/90 remain provisional, not live values.
+
+Decision: Future excavation materials and coefficients use two-layer groups (layers 1–2, 3–4, then 5), independently configurable per site, with positive material resistances. Depth counts and coefficients remain balancing candidates. Purchased digging helpers and their upgrades must persist across museums; a player visit activates work at each new site, work continues elsewhere while the game runs, closing/pausing stops work without offline catch-up, and recovered parts remain in the original site's chest until player transport.
+
+Reason: Miloš's explicit Phase 7.6A specification.
+
+Impacts: Future-only definitions, pure ownership/display queries reusing Phase 7.4B, structural and mixed-dependency cycle validation, a deterministic synthetic reachability witness, isolated depth metadata, and tests. See [Phase 7.6A graph and limitations](phase7/7.6a-fossil-site-dependency-graph.md). No live offers, travel sites, models, purchases, geometry, helper behavior, ticket prices, west-wing functionality or schema-24 contracts change. The existing ownership/save contract still cannot accept future room purchase receipts.
+
+Supersedes: The v2.1 simulation's hypothetical placement of Inostrancevia at Site 7, its site-before-stand policy, and its recommendation to choose room-specific order rather than the now-approved strict global sequence. That historical simulation remains reproducible and is not retroactively rewritten. Complete physical acquisition/reconstruction/display reachability remains unverified until real future content exists; this phase verifies the planned dependency graph only.
+
+### 2026-11-11 — Phase 7.7A makes the full existing hall Early Permian Room 1
+
+Decision: Room 1 is initially available and contains the two existing large stands (Dimetrodon and Eryops), the trilobite slab, and a non-purchasable reserved small Walchia stand. Eryops no longer requires west-wing ownership or payment. Keep the three active identities, prices, sites and current purchase ordering; do not activate Walchia or later rooms.
+
+Reason: Miloš's explicit Phase 7.7A layout and access specification.
+
+Impacts: Use the existing 25×12 floor from the start, preserve active fossil/entrance/cashier anchors, add Walchia at (-11,4.5) and a closed far-wall recess for the future room connection. Remove the live wing offer; preserve historical receipts, deposits and expansion credit without refunds. Schema 24 retains its serialized shape and number, with an explicit current-reader Eryops prerequisite policy; historical readers/contracts remain frozen by default. See [layout, validation and review](phase7/7.7a-early-permian-room-layout.md). Progressive purchasing, Walchia content and Room 2/3 remain deferred.
+
+Supersedes: The live Eryops west-wing gate and compact/expanded floor distinction. Historical contract behavior and the future four-fossil Room 1 completion definition are unchanged.
+
+### 2026-11-12 — Phase 7.7B progressive purchasing and Economy v2 MVP
+
+Decision: Activate only Dimetrodon → Trilobite → Eryops stand purchasing, gated by valid preceding displays, at 12/8/16 coins. The existing Eryops site costs 20 for new purchases and requires its owned stand. Valid large/small displays contribute 4/2 admission, producing 4/6/10 along the new sequence. Preserve Room 1 geometry, current excavation/cleaning, visitor arrivals/capacities, manual collection, historical payments and unused expansion credit. Walchia and later content remain inactive; three active displays do not complete the four-exhibit room.
+
+Reason: Miloš's explicit Phase 7.7B specification.
+
+Impacts: Schema 25 explicitly distinguishes inherited purchase/sales evidence from current terms, without rewriting old receipts or money. The active catalog projects into the existing Permian graph; candidate-state commits remain authoritative. See [implementation, validation and independent review](phase7/7.7b-progressive-purchasing-economy-mvp.md).
+
+Decision: Enforce the same Dimetrodon → Trilobite → Eryops purchase order immediately for fresh and loaded games. This development-stage project intentionally starts milestones at 0% progress; obsolete historical saves need not remain playable. Do not add grandfathered purchase-order exceptions, alternative purchase paths, refunds or free money. Keep historical parsers/migrations and stored data; resetting requires an explicit user action and confirmation.
+
+Reason: Miloš explicitly chose option 2 on 2026-11-12 after reviewing the historical bootstrap deadlock.
+
+Impacts: A loaded save without the Dimetrodon stand or admission income, whose bank balance, pending cash and Dimetrodon deposit cannot fund that stand, receives a conservative recovery notice. It explains the new sequence and offers keeping the saved game or confirming a new beginning. This is a possible-dead-end warning, not a proof that remaining soil cannot fund recovery. Structurally invalid saves retain the existing separate recovery flow. Tests and disposable browser contexts use synthetic saves only; real player storage is untouched.
+
+Supersedes: New-game simultaneous stand availability, Eryops stand price 12, site price 24 and count-based admission pricing. Historical receipts and sales retain their original values and earlier readers remain frozen by default.
+
+### 2026-11-12 — Phase 7.7C independent waiting and admission capacity
+
+Decision: Derive visitor capacity from owned rooms: one room allows 6 waiting / 6 admitted, two allow 10/12, three allow 14/18. Waiting visitors do not occupy admission places; paid visitors retain a place throughout movement, viewing and exit. Payment requires a free place and reserves it atomically with the existing sale. Full occupancy does not block arrivals while waiting space remains. Preserve arrival intervals, ticket prices, manual collection and existing reload/travel semantics.
+
+Reason: Miloš's explicit Phase 7.7C request.
+
+Impacts: Live schema 25 derives 6/6 from validated initial room ownership, with independent visitor-count validation and no added saved fields. Historical readers retain their old limits. Later tiers are tested through explicit synthetic validated ownership projections; future receipts and room purchases remain unavailable. Fold six queue positions within the cashier area without changing room geometry, stand positions or decorations. See [implementation and validation](phase7/7.7c-visitor-capacity-and-admission.md).
+
+Supersedes: Live schema-25 three-person waiting limit and six-person combined visitor cap. Historical contracts and research baselines remain unchanged.
+
+### 2026-11-13 — Phase 7.7D Walchia completes the first Permian room
+
+Decision: Activate Walchia as the fourth Room 1 exhibit, sharing the existing Eryops site. Use one plant-impression slab, the approved small stand at (−11, 4.5), an explicit 10-coin purchase after valid Eryops display, and +2 admission only after valid placement. All four displays yield 12-coin admission and derived Room 1 completion. No Room 2 purchase, free room, completion bonus or fifth stand is activated.
+
+Reason: Miloš's explicit Phase 7.7D request.
+
+Impacts: Schema 26 adds the new fossil/stand contract while preserving historical readers and accounting. Migration reopens a completed Site 2 for its new material without resetting soil/rewards or granting Walchia. The original procedural plant impression is a playtest placeholder; facts are source-checked. The skippable celebration waits until the information card closes and never replays on restore. Visitor limits remain 6 waiting / 6 admitted. See [implementation and validation](phase7/7.7d-walchia-room1-completion.md).
+
+Supersedes: Walchia's planned-only status and three-exhibit active Room 1 roster. Historical receipt and ticket values remain unchanged.
+
+### 2026-11-16 — Focused Phase 7.7 cash and Walchia hotfix
+
+Decision: Cashier revenue is collected automatically when the player reaches or crosses its pickup radius. Remove manual cash collection. Use banknotes and a growing visual wallet stack for pickup feedback while retaining the exact balance and existing pending-cash accounting. Center and enlarge whole-fossil placement targets; show Walchia's fossil alongside a locally bundled, explicitly labeled living-plant reconstruction.
+
+Reason: Miloš's explicit two-bug Phase 7.7 hotfix request.
+
+Impacts: Proximity detection calls the existing atomic pending-to-balance command. No currency values, receipts, rewards, save fields/version, fossil entitlement, placement validation or room-completion rules change. Original project SVG uses source-checked general Walchia-type morphology; colors/crown are labeled interpretive. See [hotfix validation and review](phase7/7.7-hotfix-cash-walchia.md).
+
+Boundary: No Phase 7.8, map/travel work, new content progression, dependency, user-save reset or Git commit.
+
+Supersedes: Manual cash collection retained by the earlier 7.7B/C notes; Walchia's missing living-plant comparison in 7.7D. The existing procedural fossil remains stylized.
+
 Add new entries below in this format:
 
 ```text
